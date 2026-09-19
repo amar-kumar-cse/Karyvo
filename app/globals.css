@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f0f7fe;
+  --foreground: #0f172a;
+
+  /* Centralized Light Modern SaaS Glassmorphism Tokens */
+  --glass-bg: rgba(255, 255, 255, 0.88);
+  --glass-bg-hover: rgba(255, 255, 255, 0.96);
+  --glass-border: rgba(226, 232, 240, 0.85);
+  --glass-border-hover: rgba(99, 102, 241, 0.4);
+  --glass-shadow: 0 10px 30px -5px rgba(30, 58, 138, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+  --glass-shadow-hover: 0 20px 40px -10px rgba(79, 70, 229, 0.16), 0 6px 16px -2px rgba(0, 0, 0, 0.05);
+
+  /* Gold-Edged Glass Tokens */
+  --glass-gold-bg: linear-gradient(180deg, rgba(254, 243, 199, 0.75) 0%, rgba(255, 255, 255, 0.95) 100%);
+  --glass-gold-border: rgba(245, 158, 11, 0.45);
+  --glass-gold-shadow: 0 10px 30px -5px rgba(245, 158, 11, 0.15), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+}
+
+body {
+  background-color: #f0f7fe;
+  color: #1e293b;
+  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+.font-heading {
+  font-family: var(--font-manrope), var(--font-inter), sans-serif;
+}
+
+/* Dreamy Blue Sky & Soft Cloud Horizon Canvas (matching reference design) */
+.sky-cloud-canvas {
+  background-color: #f1f7fe;
+  background-image:
+    /* Center sunlit glow behind main headlines for readability */
+    radial-gradient(ellipse 1100px 550px at 50% 16%, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.25) 50%, transparent 80%),
+    url('/images/saas_sky_clouds_bg.jpg');
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Backwards compatibility alias for ambient-mesh */
+.ambient-mesh {
+  background-color: #f1f7fe;
+  background-image:
+    radial-gradient(ellipse 1100px 550px at 50% 16%, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.25) 50%, transparent 80%),
+    url('/images/saas_sky_clouds_bg.jpg');
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Unified Floating-Glass Surfaces */
+.glass-surface {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-surface-interactive {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-surface-interactive:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--glass-shadow-hover);
+  transform: translateY(-2px);
+}
+
+/* Gold-Edged Glass Treatment for Pro Tier */
+.glass-surface-gold {
+  background: var(--glass-gold-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-gold-border);
+  box-shadow: var(--glass-gold-shadow);
+}
+
+/* Physically-Lit Floating Paper Document (Resume preview remains clean & paper-lit) */
+.paper-lit-sheet {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.04),
+    0 20px 40px -10px rgba(30, 58, 138, 0.12),
+    0 0 0 1px rgba(226, 232, 240, 0.85);
+  border-radius: 6px;
+  position: relative;
+  transition: box-shadow 0.4s ease;
+}
+
+/* Accessible Reduced-Motion Mode */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .glass-surface-interactive:hover {
+    transform: none !important;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #eef5fd;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}
+
+/* Print CSS for High-Fidelity Resume Export */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .paper-lit-sheet {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+}
+
+.no-print {
+  display: none !important;
+}
+
+.paper-lit-sheet {
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  max-width: 100% !important;
+}
