@@ -23,7 +23,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Connected Platform</h4>
+            <h3 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Connected Platform</h3>
             <ul className="space-y-2 text-xs">
               <li><Link href="/profile" className="text-slate-600 hover:text-indigo-600 transition-colors">Master Career Profile</Link></li>
               <li><Link href="/resume" className="text-slate-600 hover:text-indigo-600 transition-colors">7-Step Resume Builder</Link></li>
@@ -34,7 +34,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Indian Tech Markets</h4>
+            <h3 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Indian Tech Markets</h3>
             <ul className="space-y-2 text-xs text-slate-600">
               <li>Bengaluru & Hyderabad Tech Hubs</li>
               <li>Fresher Placement Acceleration</li>
@@ -45,7 +45,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Pro Access</h4>
+            <h3 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Pro Access</h3>
             <p className="text-xs text-slate-600 mb-3">
               Unlock unlimited AI bullet enhancements, executive PDF rendering, and role interview simulations.
             </p>

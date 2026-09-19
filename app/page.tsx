@@ -70,7 +70,7 @@ export default function HomePage() {
             </div>
 
             {/* Quick Metrics */}
-            <div className="pt-6 border-t border-slate-200/80 grid grid-cols-3 gap-4 text-center lg:text-left">
+            <div className="mt-8 pt-8 border-t border-slate-200/80 grid grid-cols-3 gap-4 text-center lg:text-left">
               <div>
                 <span className="block text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">98%</span>
                 <span className="text-xs text-slate-500 font-medium">ATS Pass Rate</span>
@@ -80,7 +80,7 @@ export default function HomePage() {
                 <span className="text-xs text-slate-500 font-medium">AI Bullet Formula</span>
               </div>
               <div>
-                <span className="block text-2xl sm:text-3xl font-extrabold text-amber-600 font-heading">100%</span>
+                <span className="block text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">100%</span>
                 <span className="text-xs text-slate-500 font-medium">Zero Hallucinations</span>
               </div>
             </div>
