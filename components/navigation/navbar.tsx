@@ -66,7 +66,7 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-2">
+        <nav className="hidden md:flex items-center gap-1 lg:gap-2.5">
           {navLinks.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
@@ -74,7 +74,7 @@ export function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${isActive
+                className={`relative flex items-center gap-2 px-3 lg:px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${isActive
                   ? "text-indigo-700 bg-indigo-50/90 border border-indigo-200/80 shadow-sm font-semibold"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/80 border border-transparent"
                   }`}

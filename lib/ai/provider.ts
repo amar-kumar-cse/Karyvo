@@ -2,25 +2,11 @@ import { MasterCareerProfile } from "@/types/profile";
 import { CoverLetterTone } from "@/types/cover-letter";
 import { InterviewQuestionItem } from "@/types/interview";
 
-export interface AIProviderConfig {
-  apiKey?: string;
-  model?: string;
-  provider?: "gemini" | "openai" | "groq" | "smart-engine";
-}
-
 export class KaryvoAIService {
-  private provider: "gemini" | "openai" | "groq" | "smart-engine";
+  private provider: "gemini" | "smart-engine";
 
   constructor() {
-    if (process.env.GEMINI_API_KEY) {
-      this.provider = "gemini";
-    } else if (process.env.OPENAI_API_KEY) {
-      this.provider = "openai";
-    } else if (process.env.GROQ_API_KEY) {
-      this.provider = "groq";
-    } else {
-      this.provider = "smart-engine";
-    }
+    this.provider = process.env.GEMINI_API_KEY ? "gemini" : "smart-engine";
   }
 
   /**

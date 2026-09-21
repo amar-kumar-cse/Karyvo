@@ -13,7 +13,7 @@ export function Footer() {
               </div>
               <span className="text-lg font-bold text-slate-900 tracking-tight font-heading">KARYVO AI</span>
             </div>
-            <p className="text-xs leading-relaxed text-slate-600">
+            <p className="text-sm leading-relaxed text-slate-600">
               India-first AI career ecosystem. Build your resume, beat ATS filters, craft authentic cover letters, and master interview questions — powered by one single Master Career Profile.
             </p>
             <div className="flex items-center gap-1.5 text-xs text-amber-700 font-medium">
@@ -24,7 +24,7 @@ export function Footer() {
 
           <div>
             <h2 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Connected Platform</h2>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-2 text-sm">
               <li><Link href="/profile" className="text-slate-600 hover:text-indigo-600 transition-colors">Master Career Profile</Link></li>
               <li><Link href="/resume" className="text-slate-600 hover:text-indigo-600 transition-colors">7-Step Resume Builder</Link></li>
               <li><Link href="/ats" className="text-slate-600 hover:text-indigo-600 transition-colors">Standalone ATS Scanner</Link></li>
@@ -35,7 +35,7 @@ export function Footer() {
 
           <div>
             <h2 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Indian Tech Markets</h2>
-            <ul className="space-y-2 text-xs text-slate-600">
+            <ul className="space-y-2 text-sm text-slate-600">
               <li>Bengaluru & Hyderabad Tech Hubs</li>
               <li>Fresher Placement Acceleration</li>
               <li>CTC & Notice Period Optimization</li>
@@ -46,7 +46,7 @@ export function Footer() {
 
           <div>
             <h2 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Pro Access</h2>
-            <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+            <p className="text-sm text-slate-600 mb-3 leading-relaxed">
               Unlock unlimited AI bullet enhancements, executive PDF rendering, and role interview simulations.
             </p>
             <Link
