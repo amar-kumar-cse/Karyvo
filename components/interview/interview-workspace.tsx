@@ -18,6 +18,7 @@ import {
   Send,
   Award,
   BookOpen,
+  RotateCcw,
 } from "lucide-react";
 
 const TARGET_ROLES: TargetRole[] = [
@@ -139,17 +140,17 @@ export function InterviewWorkspace({ initialSessions }: Props) {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 font-heading flex items-center gap-2">
-              <Headphones className="h-7 w-7 text-indigo-600" />
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 font-heading">
               Role-Driven Interview AI
             </h1>
-            <GlassBadge variant="violet" className="font-heading">
-              Role Simulator
+            <GlassBadge variant="violet" className="font-heading inline-flex items-center gap-1.5">
+              <Headphones className="h-3 w-3 text-indigo-600" aria-hidden="true" />
+              <span>Role Simulator</span>
             </GlassBadge>
           </div>
           <p className="text-xs sm:text-sm text-slate-600">
@@ -159,15 +160,15 @@ export function InterviewWorkspace({ initialSessions }: Props) {
       </div>
 
       {/* Role Selector & Launcher */}
-      <GlassCard className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <GlassCard className="p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="w-full sm:w-2/3 space-y-1">
-          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block font-heading">
-            Select Target Interview Role
+          <label className="text-xs font-bold text-slate-700 block font-heading">
+            Target Interview Role
           </label>
           <select
             value={selectedRole}
             onChange={(e) => setSelectedRole(e.target.value as TargetRole)}
-            className="w-full bg-white/95 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium focus:outline-none focus:border-indigo-500 shadow-sm"
+            className="w-full bg-white/95 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-indigo-500 shadow-sm"
           >
             {TARGET_ROLES.map((role) => (
               <option key={role} value={role}>
@@ -177,110 +178,141 @@ export function InterviewWorkspace({ initialSessions }: Props) {
           </select>
         </div>
 
-        <GlassButton
-          variant="primary"
-          size="lg"
-          onClick={handleStartSession}
-          disabled={isStarting}
-          loading={isStarting}
-          className="w-full sm:w-auto"
-        >
-          <Sparkles className="h-4 w-4 text-amber-300" />
-          <span>{isStarting ? "Assembling Interview..." : "Start Mock Interview"}</span>
-        </GlassButton>
+        {activeSession ? (
+          <GlassButton
+            variant="secondary"
+            size="md"
+            onClick={handleStartSession}
+            disabled={isStarting}
+            loading={isStarting}
+            className="w-full sm:w-auto shrink-0"
+            title="Switch target role or reset session"
+          >
+            <RotateCcw className="h-4 w-4 text-slate-500" aria-hidden="true" />
+            <span>{isStarting ? "Switching Role..." : "Reset / Change Role"}</span>
+          </GlassButton>
+        ) : (
+          <GlassButton
+            variant="primary"
+            size="lg"
+            onClick={handleStartSession}
+            disabled={isStarting}
+            loading={isStarting}
+            className="w-full sm:w-auto shrink-0"
+          >
+            <Sparkles className="h-4 w-4 text-amber-300" aria-hidden="true" />
+            <span>{isStarting ? "Assembling Interview..." : "Start Mock Interview"}</span>
+          </GlassButton>
+        )}
       </GlassCard>
 
       {/* Interactive Mock Interview Room */}
       {activeSession && activeSession.questions.length > 0 && (
         <div className="space-y-6">
-          {/* Question Stepper Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2">
-            {activeSession.questions.map((q, idx) => (
-              <button
-                key={q.id}
-                onClick={() => {
-                  setCurrentQuestionIndex(idx);
-                  setUserAnswer(q.userAnswer || "");
-                  if (q.score) {
-                    setEvaluationResult({
-                      score: q.score,
-                      feedbackStrengths: q.feedbackStrengths || [],
-                      feedbackImprovements: q.feedbackImprovements || [],
-                      betterAnswer: q.modelAnswer || "",
-                    });
-                  } else {
-                    setEvaluationResult(null);
-                  }
-                }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all whitespace-nowrap ${currentQuestionIndex === idx
-                    ? "bg-violet-600/25 text-violet-200 border-violet-500/50 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
-                    : q.score
-                      ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
-                      : "bg-white/[0.02] text-slate-400 border-white/[0.06] hover:bg-white/[0.05]"
-                  }`}
-              >
-                <span className="font-heading">Q{idx + 1}</span>
-                <span className="text-[10px] opacity-75">({q.category})</span>
-                {q.score && (
-                  <span className="font-heading text-[10px] text-emerald-400 font-extrabold">{q.score}%</span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* Current Question Card */}
-          <GlassCard className="p-6 sm:p-8 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-              <GlassBadge variant="violet" className="font-heading text-xs uppercase">
-                {activeSession.questions[currentQuestionIndex].category} Round
-              </GlassBadge>
-              <span className="text-xs text-slate-400">
-                Question {currentQuestionIndex + 1} of {activeSession.questions.length}
+          {/* Question Card with Integrated Stepper */}
+          <GlassCard className="p-0 overflow-hidden space-y-0">
+            {/* Integrated Question Stepper Tabs Bar */}
+            <div className="flex items-center gap-2 overflow-x-auto px-6 py-3.5 bg-slate-50/90 border-b border-slate-200">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider font-heading shrink-0 mr-1">
+                Questions:
               </span>
+              <div className="flex items-center gap-2" role="tablist" aria-label="Interview Questions">
+                {activeSession.questions.map((q, idx) => (
+                  <button
+                    key={q.id}
+                    role="tab"
+                    aria-selected={currentQuestionIndex === idx}
+                    onClick={() => {
+                      setCurrentQuestionIndex(idx);
+                      setUserAnswer(q.userAnswer || "");
+                      if (q.score) {
+                        setEvaluationResult({
+                          score: q.score,
+                          feedbackStrengths: q.feedbackStrengths || [],
+                          feedbackImprovements: q.feedbackImprovements || [],
+                          betterAnswer: q.modelAnswer || "",
+                        });
+                      } else {
+                        setEvaluationResult(null);
+                      }
+                    }}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap ${
+                      currentQuestionIndex === idx
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                        : q.score
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    <span className="font-heading">Q{idx + 1}</span>
+                    <span className="text-[10px] opacity-80">({q.category})</span>
+                    {q.score && (
+                      <span className="font-heading text-[10px] text-emerald-600 font-extrabold">{q.score}%</span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <h2 className="text-lg sm:text-xl font-bold text-slate-900 font-heading leading-snug">
-              {activeSession.questions[currentQuestionIndex].questionText}
-            </h2>
+            {/* Question Body */}
+            <div className="p-6 sm:p-8 space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                <GlassBadge variant="violet" className="font-heading text-xs uppercase">
+                  {activeSession.questions[currentQuestionIndex].category} Round
+                </GlassBadge>
+                <span className="text-xs text-slate-500 font-medium">
+                  Question {currentQuestionIndex + 1} of {activeSession.questions.length}
+                </span>
+              </div>
 
-            {/* Answer Input */}
-            <div className="space-y-2">
-              <label className="text-xs text-slate-700 font-medium block">
-                Your Answer (Explain context, engineering methodology, and measured outcomes)
-              </label>
-              <GlassTextarea
-                rows={5}
-                value={userAnswer}
-                onChange={(e) => setUserAnswer(e.target.value)}
-                placeholder="Type your structured answer here... (e.g., 'When handling this scenario, I first isolate the telemetry...')"
-              />
-            </div>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 font-heading leading-snug">
+                {activeSession.questions[currentQuestionIndex].questionText}
+              </h2>
 
-            {/* Submit & Navigation Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-              <GlassButton
-                variant="primary"
-                size="md"
-                onClick={handleSubmitAnswer}
-                disabled={isEvaluating || !userAnswer.trim()}
-                loading={isEvaluating}
-                className="w-full sm:w-auto"
-              >
-                <Send className="h-4 w-4" />
-                <span>{isEvaluating ? "Evaluating..." : "Submit Answer For AI Review"}</span>
-              </GlassButton>
+              {/* Answer Input */}
+              <div className="space-y-2">
+                <label className="text-xs text-slate-700 font-medium block">
+                  Your Answer (Explain context, engineering methodology, and measured outcomes)
+                </label>
+                <GlassTextarea
+                  rows={5}
+                  value={userAnswer}
+                  onChange={(e) => setUserAnswer(e.target.value)}
+                  placeholder="Type your structured answer here... (e.g., 'When handling this scenario, I first isolate the telemetry...')"
+                />
+              </div>
 
-              {currentQuestionIndex < activeSession.questions.length - 1 && (
+              {/* Submit & Navigation Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
                 <GlassButton
-                  variant="secondary"
+                  variant="primary"
                   size="md"
-                  onClick={handleNextQuestion}
-                  className="w-full sm:w-auto"
+                  onClick={handleSubmitAnswer}
+                  disabled={isEvaluating || !userAnswer.trim()}
+                  loading={isEvaluating}
+                  className={`w-full sm:w-auto transition-all ${
+                    !userAnswer.trim()
+                      ? "opacity-40 grayscale contrast-75 shadow-none border-slate-300 pointer-events-none"
+                      : ""
+                  }`}
+                  title={!userAnswer.trim() ? "Type your answer above to submit for AI evaluation" : undefined}
                 >
-                  <span>Next Question</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <Send className="h-4 w-4" />
+                  <span>{isEvaluating ? "Evaluating..." : "Submit Answer For AI Review"}</span>
                 </GlassButton>
-              )}
+
+                {currentQuestionIndex < activeSession.questions.length - 1 && (
+                  <GlassButton
+                    variant="secondary"
+                    size="md"
+                    onClick={handleNextQuestion}
+                    className="w-full sm:w-auto"
+                  >
+                    <span>Next Question</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </GlassButton>
+                )}
+              </div>
             </div>
           </GlassCard>
 
@@ -296,10 +328,10 @@ export function InterviewWorkspace({ initialSessions }: Props) {
                   <span className="text-xs text-slate-600">Response Score:</span>
                   <span
                     className={`font-heading text-base font-extrabold px-2.5 py-0.5 rounded-xl border ${evaluationResult.score >= 80
-                        ? "text-emerald-300 border-emerald-500/40 bg-emerald-500/10"
+                        ? "text-emerald-700 border-emerald-300 bg-emerald-50"
                         : evaluationResult.score >= 60
-                          ? "text-violet-300 border-violet-500/40 bg-violet-500/10"
-                          : "text-amber-300 border-amber-500/40 bg-amber-500/10"
+                          ? "text-indigo-700 border-indigo-300 bg-indigo-50"
+                          : "text-amber-700 border-amber-300 bg-amber-50"
                       }`}
                   >
                     {evaluationResult.score}/100
@@ -309,14 +341,14 @@ export function InterviewWorkspace({ initialSessions }: Props) {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Strengths */}
-                <div className="p-4 rounded-xl bg-emerald-500/[0.04] border border-emerald-500/20 space-y-2">
-                  <span className="text-xs font-bold text-emerald-400 font-heading flex items-center gap-1.5 uppercase tracking-wider">
-                    <CheckCircle2 className="h-4 w-4" /> Strengths
+                <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-2">
+                  <span className="text-xs font-bold text-emerald-800 font-heading flex items-center gap-1.5 uppercase tracking-wider">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Strengths
                   </span>
-                  <ul className="space-y-1.5 text-xs text-slate-300">
+                  <ul className="space-y-1.5 text-xs text-slate-700">
                     {evaluationResult.feedbackStrengths.map((str, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
                         <span>{str}</span>
                       </li>
                     ))}
@@ -324,14 +356,14 @@ export function InterviewWorkspace({ initialSessions }: Props) {
                 </div>
 
                 {/* Improvements */}
-                <div className="p-4 rounded-xl bg-amber-500/[0.04] border border-amber-500/20 space-y-2">
-                  <span className="text-xs font-bold text-amber-400 font-heading flex items-center gap-1.5 uppercase tracking-wider">
-                    <AlertCircle className="h-4 w-4" /> Areas For Improvement
+                <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
+                  <span className="text-xs font-bold text-amber-800 font-heading flex items-center gap-1.5 uppercase tracking-wider">
+                    <AlertCircle className="h-4 w-4 text-amber-600" /> Areas For Improvement
                   </span>
-                  <ul className="space-y-1.5 text-xs text-slate-300">
+                  <ul className="space-y-1.5 text-xs text-slate-700">
                     {evaluationResult.feedbackImprovements.map((imp, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
                         <span>{imp}</span>
                       </li>
                     ))}
@@ -341,11 +373,11 @@ export function InterviewWorkspace({ initialSessions }: Props) {
 
               {/* Model Benchmark Answer */}
               {evaluationResult.betterAnswer && (
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2">
-                  <span className="text-xs font-bold text-slate-300 font-heading flex items-center gap-1.5 uppercase tracking-wider">
-                    <BookOpen className="h-4 w-4 text-violet-400" /> Top-Percentile Model Answer
+                <div className="p-4 rounded-xl bg-white/90 border border-slate-200 space-y-2 shadow-inner">
+                  <span className="text-xs font-bold text-slate-800 font-heading flex items-center gap-1.5 uppercase tracking-wider">
+                    <BookOpen className="h-4 w-4 text-indigo-600" /> Top-Percentile Model Answer
                   </span>
-                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans select-text">
+                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-sans select-text">
                     {evaluationResult.betterAnswer}
                   </p>
                 </div>

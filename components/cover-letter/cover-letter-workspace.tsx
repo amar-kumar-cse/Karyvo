@@ -17,7 +17,7 @@ import {
   Building,
   Briefcase,
   Sliders,
-  Download,
+  Printer,
   FileText,
   RotateCcw,
 } from "lucide-react";
@@ -70,17 +70,17 @@ export function CoverLetterWorkspace({ initialLetters }: Props) {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 font-heading flex items-center gap-2">
-              <Send className="h-7 w-7 text-indigo-600" />
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 font-heading">
               Role Cover Letter AI
             </h1>
-            <GlassBadge variant="violet" className="font-heading">
-              Company + Role + Tone
+            <GlassBadge variant="violet" className="font-heading inline-flex items-center gap-1.5">
+              <Send className="h-3 w-3 text-indigo-600" aria-hidden="true" />
+              <span>Company + Role + Tone</span>
             </GlassBadge>
           </div>
           <p className="text-xs sm:text-sm text-slate-600">
@@ -157,7 +157,7 @@ export function CoverLetterWorkspace({ initialLetters }: Props) {
           {/* Saved Letters History */}
           {lettersList.length > 0 && (
             <GlassCard className="p-5 space-y-3">
-              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider block font-heading">
+              <span className="text-xs font-bold text-slate-700 block font-heading">
                 Saved Cover Letters
               </span>
               <div className="space-y-2 max-h-[220px] overflow-y-auto">
@@ -171,7 +171,7 @@ export function CoverLetterWorkspace({ initialLetters }: Props) {
                       }`}
                   >
                     <div className="font-bold text-slate-900 font-heading">{letItem.companyName}</div>
-                    <div className="text-[11px] text-slate-500">{letItem.targetRole} • {letItem.tone}</div>
+                    <div className="text-xs text-slate-600 font-medium mt-0.5">{letItem.targetRole} • {letItem.tone}</div>
                   </button>
                 ))}
               </div>
@@ -183,32 +183,32 @@ export function CoverLetterWorkspace({ initialLetters }: Props) {
         <div className="lg:col-span-7">
           {currentLetter ? (
             <GlassCard className="p-6 sm:p-8 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 font-heading">{currentLetter.companyName}</h3>
+                  <h2 className="text-base font-bold text-slate-900 font-heading">{currentLetter.companyName}</h2>
                   <span className="text-xs text-indigo-600 font-medium">{currentLetter.targetRole}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2.5">
                   <GlassButton
                     variant="secondary"
-                    size="sm"
+                    size="md"
                     onClick={handleGenerate}
                     title="Regenerate with fresh phrasing"
                   >
-                    <RotateCcw className="h-3.5 w-3.5" />
+                    <RotateCcw className="h-4 w-4" aria-hidden="true" />
                     <span className="hidden sm:inline">Regenerate</span>
                   </GlassButton>
-                  <GlassButton variant="secondary" size="sm" onClick={handleCopy}>
-                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  <GlassButton variant="secondary" size="md" onClick={handleCopy}>
+                    {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
                     <span>{copied ? "Copied!" : "Copy"}</span>
                   </GlassButton>
                   <GlassButton
                     variant="outline"
-                    size="sm"
+                    size="md"
                     onClick={() => window.print()}
-                    className="border-amber-400/60 text-amber-700 hover:bg-amber-50"
+                    className="border-amber-400/80 bg-amber-50/70 text-amber-800 hover:bg-amber-100/70 shadow-sm"
                   >
-                    <Download className="h-3.5 w-3.5" />
+                    <Printer className="h-4 w-4 text-amber-600" aria-hidden="true" />
                     <span>Print PDF</span>
                   </GlassButton>
                 </div>

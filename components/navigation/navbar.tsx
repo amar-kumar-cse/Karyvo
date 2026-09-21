@@ -90,10 +90,10 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           <Link
             href="/pricing"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-200/80 bg-amber-50/60 text-amber-700 hover:text-amber-800 hover:bg-amber-100/60 transition-colors text-xs font-medium"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-amber-300 bg-amber-400 hover:bg-amber-300 text-slate-950 font-heading text-xs font-bold shadow-sm transition-all"
           >
-            <Crown className="h-3.5 w-3.5 text-amber-600 fill-amber-500/10" aria-hidden="true" />
-            <span className="font-heading">{isPro ? "Pro Active" : "Upgrade Pro"}</span>
+            <Crown className="h-3.5 w-3.5 text-slate-950 fill-slate-950/20" aria-hidden="true" />
+            <span>{isPro ? "Pro Active" : "Upgrade Pro"}</span>
           </Link>
 
           {/* Mobile Hamburger Button */}

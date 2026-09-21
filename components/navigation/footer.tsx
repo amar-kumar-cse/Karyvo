@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, Shield, Heart } from "lucide-react";
+import { Sparkles, Shield, Heart, Crown } from "lucide-react";
 
 export function Footer() {
   return (
@@ -51,9 +51,10 @@ export function Footer() {
             </p>
             <Link
               href="/pricing"
-              className="inline-block px-3.5 py-1.5 rounded-xl border border-slate-200/90 bg-white/90 hover:bg-white text-slate-700 hover:text-indigo-600 text-xs font-semibold shadow-sm transition-all"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-amber-300 bg-amber-400 hover:bg-amber-300 text-slate-950 font-heading text-xs font-bold shadow-sm transition-all"
             >
-              Explore Pro Plan (₹499/mo)
+              <Crown className="h-3.5 w-3.5 text-slate-950 fill-slate-950/20" aria-hidden="true" />
+              <span>Upgrade Pro (₹499/mo)</span>
             </Link>
           </div>
         </div>
