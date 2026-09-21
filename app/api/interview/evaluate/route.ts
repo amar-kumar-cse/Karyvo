@@ -1,13 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { karyvoAI } from "@/lib/ai/provider";
 import { repository } from "@/lib/db/repository";
+import { getUser } from "@/lib/auth/getUser";
+import { handleApiError } from "@/lib/apiError";
+import { rateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const { userId } = await getUser(req);
+
+    const { limited } = rateLimit(`interview-eval:${userId}`, RATE_LIMITS.ai.maxRequests, RATE_LIMITS.ai.windowMs);
+    if (limited) {
+      return NextResponse.json({ success: false, error: "Too many AI requests. Please wait a moment." }, { status: 429 });
+    }
+
     const body = await req.json();
     const { sessionId, questionIndex, questionText, userAnswer, category } = body;
 
-    if (!userAnswer || !questionText) {
+    if (!userAnswer || typeof userAnswer !== "string" || !questionText || typeof questionText !== "string") {
       return NextResponse.json({ success: false, error: "Question text and user answer are required." }, { status: 400 });
     }
 
@@ -22,10 +32,12 @@ export async function POST(req: Request) {
     );
 
     // If sessionId is present, persist the answer and score into the session
-    if (sessionId) {
+    if (sessionId && typeof sessionId === "string") {
       const sessions = repository.getInterviewSessions();
-      const session = sessions.find((s) => s.id === sessionId);
-      if (session && session.questions) {
+      const existingSession = sessions.find((s) => s.id === sessionId);
+      if (existingSession && existingSession.questions) {
+        // H6: Deep copy session to avoid mutating in-memory store in-place
+        const session = structuredClone(existingSession);
         const qIndex = typeof questionIndex === "number" ? questionIndex : 0;
         if (session.questions[qIndex]) {
           session.questions[qIndex].userAnswer = userAnswer;
@@ -48,7 +60,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, data: evaluation });
   } catch (error) {
-    console.error("POST /api/interview/evaluate error:", error);
-    return NextResponse.json({ success: false, error: "Failed to evaluate answer." }, { status: 500 });
+    return handleApiError(error, "POST /api/interview/evaluate");
   }
 }

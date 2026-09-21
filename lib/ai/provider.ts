@@ -1,6 +1,15 @@
 import { MasterCareerProfile } from "@/types/profile";
 import { CoverLetterTone } from "@/types/cover-letter";
 import { InterviewQuestionItem } from "@/types/interview";
+import { z } from "zod";
+
+// H1: Zod schema to validate AI response structure before trusting it
+const BulletImprovementSchema = z.object({
+  improved: z.string(),
+  actionVerbUsed: z.string(),
+  quantificationAdded: z.boolean(),
+  explanation: z.string(),
+});
 
 export class KaryvoAIService {
   private provider: "gemini" | "smart-engine";
@@ -51,9 +60,13 @@ Return JSON with { "improved": "...", "actionVerbUsed": "...", "quantificationAd
 Original bullet: "${trimmed}"
 Role context: "${roleOrContext || "Software Engineer"}"`;
 
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+        // M7: Use x-goog-api-key header instead of query param to avoid key in URL/logs
+        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": process.env.GEMINI_API_KEY,
+          },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: { responseMimeType: "application/json" }
@@ -62,7 +75,13 @@ Role context: "${roleOrContext || "Software Engineer"}"`;
         const data = await res.json();
         const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (jsonText) {
-          return JSON.parse(jsonText);
+          const parsed = JSON.parse(jsonText);
+          // H1: Validate AI response shape with Zod before trusting it
+          const validated = BulletImprovementSchema.safeParse(parsed);
+          if (validated.success) {
+            return validated.data;
+          }
+          console.warn("AI response failed shape validation, falling back to smart engine.");
         }
       } catch (err) {
         console.error("External AI call error, falling back to smart engine:", err);
@@ -119,17 +138,45 @@ Role context: "${roleOrContext || "Software Engineer"}"`;
   }
 
   /**
+   * M1: Calculate years of experience from profile data instead of hardcoding
+   */
+  private calculateYearsOfExperience(profile: MasterCareerProfile): string {
+    if (profile.isFresherMode || !profile.experience?.length) {
+      return "";
+    }
+
+    const now = new Date();
+    let earliestStartYear = now.getFullYear();
+
+    for (const exp of profile.experience) {
+      // Parse start date like "July 2022" or "Jan 2022"
+      const match = exp.startDate?.match(/(\d{4})/);
+      if (match) {
+        const year = parseInt(match[1], 10);
+        if (year < earliestStartYear) {
+          earliestStartYear = year;
+        }
+      }
+    }
+
+    const years = now.getFullYear() - earliestStartYear;
+    return years <= 0 ? "1" : String(years);
+  }
+
+  /**
    * Generates a focused, high-impact 3-sentence professional summary
    */
   async generateSummary(profile: MasterCareerProfile, targetRole: string): Promise<string> {
+    // L3: Null-safe access for profile.skills
     const topSkills = [
-      ...(profile.skills.technical || []),
-      ...(profile.skills.frameworks || []),
+      ...(profile.skills?.technical || []),
+      ...(profile.skills?.frameworks || []),
     ].slice(0, 4).join(", ") || "Modern Web & Distributed Systems";
 
+    // M1: Dynamic years calculation
     const yearsExp = profile.isFresherMode
       ? "Motivated Engineering graduate"
-      : "Results-driven Engineer with 3+ years of hands-on experience";
+      : `Results-driven Engineer with ${this.calculateYearsOfExperience(profile)}+ years of hands-on experience`;
 
     const topProject = profile.projects?.[0]?.title || "high-throughput distributed applications";
 
@@ -151,9 +198,10 @@ Role context: "${roleOrContext || "Software Engineer"}"`;
       year: "numeric",
     });
 
+    // L3: Null-safe access for profile.skills
     const primarySkills = [
-      ...(profile.skills.technical || []),
-      ...(profile.skills.frameworks || []),
+      ...(profile.skills?.technical || []),
+      ...(profile.skills?.frameworks || []),
     ].slice(0, 4).join(", ") || "software design, frontend architecture, and microservices";
 
     const highlightExperience = profile.experience?.[0];
@@ -195,8 +243,9 @@ ${profile.linkedinUrl}`;
    * Generates realistic role-specific interview questions
    */
   async generateInterviewQuestions(targetRole: string, profile: MasterCareerProfile): Promise<InterviewQuestionItem[]> {
-    const techSkill = profile.skills.technical?.[0] || "System Architecture";
-    const framework = profile.skills.frameworks?.[0] || "React & Node.js";
+    // L3: Null-safe access
+    const techSkill = profile.skills?.technical?.[0] || "System Architecture";
+    const framework = profile.skills?.frameworks?.[0] || "React & Node.js";
     const topProject = profile.projects?.[0]?.title || "Distributed Application";
 
     return [

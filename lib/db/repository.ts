@@ -4,6 +4,12 @@ import { ATSScanResult } from "@/types/ats";
 import { CoverLetter } from "@/types/cover-letter";
 import { InterviewSession } from "@/types/interview";
 import { Subscription } from "@/types/payment";
+import crypto from "crypto";
+
+// L1: Fixed ISO strings for seed data timestamps (no drift on each restart)
+const SEED_DATE = "2025-01-15T10:00:00.000Z";
+const SEED_DATE_V1 = "2025-01-12T10:00:00.000Z";
+const SEED_DATE_V2 = "2025-01-14T10:00:00.000Z";
 
 export const SEED_PROFILE: MasterCareerProfile = {
   fullName: "Arjun Sharma",
@@ -114,8 +120,8 @@ export const SEED_RESUME: Resume = {
   targetRole: "Full-Stack Developer",
   templateId: "modern-tech",
   isPrimary: true,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+  createdAt: SEED_DATE,
+  updatedAt: SEED_DATE,
   content: {
     personal: {
       fullName: SEED_PROFILE.fullName,
@@ -145,7 +151,7 @@ export const SEED_VERSIONS: ResumeVersion[] = [
     versionLabel: "Initial General Resume",
     changeSummary: "Base resume generated from Master Career Profile",
     snapshot: SEED_RESUME.content,
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+    createdAt: SEED_DATE_V1,
   },
   {
     id: "ver-002",
@@ -162,7 +168,7 @@ export const SEED_VERSIONS: ResumeVersion[] = [
           "Performance-obsessed Backend & Distributed Systems Engineer with 3+ years experience scaling high-concurrency payment and order pipelines. Specializing in Go, Node.js, PostgreSQL clustering, and sub-50ms p99 latencies.",
       },
     },
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    createdAt: SEED_DATE_V2,
   },
 ];
 
@@ -179,18 +185,21 @@ class RepositoryStore {
     userId: "user-default",
     plan: "free",
     status: "active",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: SEED_DATE,
+    updatedAt: SEED_DATE,
   };
 
   getProfile(): MasterCareerProfile {
     return this.profile;
   }
 
+  // M9: Strip client-dangerous fields to prevent overwriting internal IDs
   saveProfile(data: MasterCareerProfile): MasterCareerProfile {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { ...profileData } = data;
     this.profile = {
       ...this.profile,
-      ...data,
+      ...profileData,
       updatedAt: new Date().toISOString(),
     };
     return this.profile;
@@ -218,23 +227,39 @@ class RepositoryStore {
     return updated;
   }
 
+  // L4: Delete a resume by ID
+  deleteResume(id: string): boolean {
+    const idx = this.resumes.findIndex((r) => r.id === id);
+    if (idx < 0) return false;
+    this.resumes.splice(idx, 1);
+    // Also clean up versions associated with this resume
+    this.versions = this.versions.filter((v) => v.resumeId !== id);
+    return true;
+  }
+
   getVersionsByResumeId(resumeId: string): ResumeVersion[] {
     return this.versions.filter((v) => v.resumeId === resumeId).sort((a, b) => b.versionNumber - a.versionNumber);
   }
 
+  // M4: Use crypto.randomUUID() for version IDs
   createVersion(version: Omit<ResumeVersion, "id" | "createdAt">): ResumeVersion {
     const newVersion: ResumeVersion = {
       ...version,
-      id: `ver-${Date.now()}`,
+      id: `ver-${crypto.randomUUID()}`,
       createdAt: new Date().toISOString(),
     };
     this.versions.push(newVersion);
     return newVersion;
   }
 
-  restoreVersion(versionId: string): Resume | null {
+  // M6: Accept resumeId to validate version ownership
+  restoreVersion(versionId: string, resumeId?: string): Resume | null {
     const version = this.versions.find((v) => v.id === versionId);
     if (!version) return null;
+
+    // M6: If resumeId is provided, verify the version belongs to that resume
+    if (resumeId && version.resumeId !== resumeId) return null;
+
     const resume = this.getResumeById(version.resumeId);
     if (!resume) return null;
 
@@ -246,6 +271,7 @@ class RepositoryStore {
     return updated;
   }
 
+  // M4: Use crypto.randomUUID() for scan IDs
   saveATSScan(scan: ATSScanResult): ATSScanResult {
     this.atsScans.unshift(scan);
     return scan;
@@ -255,6 +281,14 @@ class RepositoryStore {
     return this.atsScans;
   }
 
+  // L4: Delete an ATS scan by ID
+  deleteATSScan(id: string): boolean {
+    const idx = this.atsScans.findIndex((s) => s.id === id);
+    if (idx < 0) return false;
+    this.atsScans.splice(idx, 1);
+    return true;
+  }
+
   saveCoverLetter(letter: CoverLetter): CoverLetter {
     this.coverLetters.unshift(letter);
     return letter;
@@ -262,6 +296,14 @@ class RepositoryStore {
 
   getCoverLetters(): CoverLetter[] {
     return this.coverLetters;
+  }
+
+  // L4: Delete a cover letter by ID
+  deleteCoverLetter(id: string): boolean {
+    const idx = this.coverLetters.findIndex((l) => l.id === id);
+    if (idx < 0) return false;
+    this.coverLetters.splice(idx, 1);
+    return true;
   }
 
   saveInterviewSession(session: InterviewSession): InterviewSession {
@@ -278,14 +320,45 @@ class RepositoryStore {
     return this.interviewSessions;
   }
 
+  // L4: Delete an interview session by ID
+  deleteInterviewSession(id: string): boolean {
+    const idx = this.interviewSessions.findIndex((s) => s.id === id);
+    if (idx < 0) return false;
+    this.interviewSessions.splice(idx, 1);
+    return true;
+  }
+
   getSubscription(): Subscription {
     return this.subscription;
   }
 
-  upgradeToPro(): Subscription {
+  // H3: Accept payment metadata for proper subscription tracking
+  upgradeToPro(options?: {
+    billingCycle?: "monthly" | "yearly";
+    paymentId?: string;
+  }): Subscription {
+    const cycle = options?.billingCycle || "monthly";
+    const now = new Date();
+    const expiresAt = new Date(now);
+    expiresAt.setMonth(expiresAt.getMonth() + (cycle === "yearly" ? 12 : 1));
+
     this.subscription = {
       ...this.subscription,
       plan: "pro",
+      status: "active",
+      currentPeriodEnd: expiresAt.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+    return this.subscription;
+  }
+
+  // L5: Cancel subscription
+  cancelSubscription(): Subscription {
+    this.subscription = {
+      ...this.subscription,
+      plan: "free",
+      status: "canceled",
+      currentPeriodEnd: undefined,
       updatedAt: new Date().toISOString(),
     };
     return this.subscription;

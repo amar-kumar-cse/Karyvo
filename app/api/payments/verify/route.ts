@@ -1,11 +1,29 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { paymentService } from "@/lib/payments/razorpay";
 import { repository } from "@/lib/db/repository";
+import { getUser } from "@/lib/auth/getUser";
+import { handleApiError } from "@/lib/apiError";
+import { rateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const { userId } = await getUser(req);
+
+    const { limited } = rateLimit(`payment-verify:${userId}`, RATE_LIMITS.payment.maxRequests, RATE_LIMITS.payment.windowMs);
+    if (limited) {
+      return NextResponse.json({ success: false, error: "Too many requests. Please wait." }, { status: 429 });
+    }
+
     const body = await req.json();
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
+
+    // S1: Validate all required payment fields exist
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return NextResponse.json(
+        { success: false, error: "Missing payment verification fields." },
+        { status: 400 }
+      );
+    }
 
     const isValid = paymentService.verifySignature({
       razorpay_order_id,
@@ -29,7 +47,6 @@ export async function POST(req: Request) {
       data: subscription,
     });
   } catch (error) {
-    console.error("POST /api/payments/verify error:", error);
-    return NextResponse.json({ success: false, error: "Payment verification failed." }, { status: 500 });
+    return handleApiError(error, "POST /api/payments/verify");
   }
 }

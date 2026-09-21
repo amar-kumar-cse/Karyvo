@@ -21,7 +21,12 @@ export class PaymentService {
   }> {
     // In INR: Monthly is ₹499 (49900 paise), Yearly is ₹2999 (299900 paise)
     const amount = billingCycle === "monthly" ? 49900 : 299900;
-    const orderId = `order_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    // M4: Use crypto.randomUUID() instead of Date.now() for collision-free IDs
+    const orderId = `order_${crypto.randomUUID()}`;
+
+    // TODO: Replace with real Razorpay SDK call:
+    // const razorpay = new Razorpay({ key_id: this.keyId, key_secret: this.keySecret });
+    // const order = await razorpay.orders.create({ amount, currency: "INR", receipt: orderId });
 
     return {
       orderId,
@@ -42,8 +47,18 @@ export class PaymentService {
       return false;
     }
 
-    // In development/test mode with mock keys, allow safe mock verification
-    if (this.keySecret === "mock_secret_karyvo" && razorpay_signature.startsWith("sig_mock_")) {
+    // C4: Mock signatures are ONLY allowed in non-production environments
+    if (process.env.NODE_ENV === "production" && this.keySecret === "mock_secret_karyvo") {
+      console.error("CRITICAL: Mock payment secret detected in production. Rejecting.");
+      return false;
+    }
+
+    // Allow mock verification only in development/test with mock keys
+    if (
+      process.env.NODE_ENV !== "production" &&
+      this.keySecret === "mock_secret_karyvo" &&
+      (razorpay_signature.startsWith("sig_mock_") || razorpay_signature.startsWith("mock_"))
+    ) {
       return true;
     }
 

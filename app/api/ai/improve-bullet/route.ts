@@ -1,8 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { karyvoAI } from "@/lib/ai/provider";
+import { getUser } from "@/lib/auth/getUser";
+import { handleApiError } from "@/lib/apiError";
+import { rateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const { userId } = await getUser(req);
+
+    const { limited } = rateLimit(`ai-bullet:${userId}`, RATE_LIMITS.ai.maxRequests, RATE_LIMITS.ai.windowMs);
+    if (limited) {
+      return NextResponse.json({ success: false, error: "Too many AI requests. Please wait a moment." }, { status: 429 });
+    }
+
     const body = await req.json();
     const { bullet, context } = body;
 
@@ -17,7 +27,6 @@ export async function POST(req: Request) {
     const result = await karyvoAI.improveBullet(bullet, context);
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
-    console.error("POST /api/ai/improve-bullet error:", error);
-    return NextResponse.json({ success: false, error: "Failed to improve bullet point." }, { status: 500 });
+    return handleApiError(error, "POST /api/ai/improve-bullet");
   }
 }

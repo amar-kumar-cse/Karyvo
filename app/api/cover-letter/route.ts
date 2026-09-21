@@ -1,26 +1,52 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { karyvoAI } from "@/lib/ai/provider";
 import { repository } from "@/lib/db/repository";
 import { CoverLetter, CoverLetterTone } from "@/types/cover-letter";
+import { getUser } from "@/lib/auth/getUser";
+import { handleApiError } from "@/lib/apiError";
+import { rateLimit, RATE_LIMITS } from "@/lib/rateLimit";
+import crypto from "crypto";
 
-export async function GET() {
+// M2: Allowed tone values — validated at runtime
+const VALID_TONES: CoverLetterTone[] = [
+  "Professional & Polished",
+  "Confident & High-Impact",
+  "Modern & Creative",
+  "Enthusiastic Fresher",
+];
+
+export async function GET(req: NextRequest) {
   try {
+    const { userId } = await getUser(req);
     const letters = repository.getCoverLetters();
     return NextResponse.json({ success: true, data: letters });
   } catch (error) {
-    console.error("GET /api/cover-letter error:", error);
-    return NextResponse.json({ success: false, error: "Failed to fetch cover letters." }, { status: 500 });
+    return handleApiError(error, "GET /api/cover-letter");
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const { userId } = await getUser(req);
+
+    const { limited } = rateLimit(`cover-letter:${userId}`, RATE_LIMITS.ai.maxRequests, RATE_LIMITS.ai.windowMs);
+    if (limited) {
+      return NextResponse.json({ success: false, error: "Too many requests. Please wait a moment." }, { status: 429 });
+    }
+
     const body = await req.json();
     const { companyName, targetRole, tone, resumeId } = body;
 
     if (!companyName || !targetRole) {
       return NextResponse.json(
         { success: false, error: "Company name and target role are required." },
+        { status: 400 }
+      );
+    }
+
+    if (typeof companyName !== "string" || typeof targetRole !== "string") {
+      return NextResponse.json(
+        { success: false, error: "Company name and target role must be strings." },
         { status: 400 }
       );
     }
@@ -32,8 +58,10 @@ export async function POST(req: Request) {
       );
     }
 
+    // M2: Validate tone against allowed enum values
+    const selectedTone: CoverLetterTone = VALID_TONES.includes(tone) ? tone : "Professional & Polished";
+
     const profile = repository.getProfile();
-    const selectedTone: CoverLetterTone = tone || "Professional & Polished";
 
     const generatedContent = await karyvoAI.generateCoverLetter(
       profile,
@@ -43,8 +71,8 @@ export async function POST(req: Request) {
     );
 
     const newLetter: CoverLetter = {
-      id: `cov-${Date.now()}`,
-      userId: "user-default",
+      id: `cov-${crypto.randomUUID()}`,
+      userId,
       resumeId: resumeId || undefined,
       companyName: companyName.trim(),
       targetRole: targetRole.trim(),
@@ -58,7 +86,28 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, data: newLetter });
   } catch (error) {
-    console.error("POST /api/cover-letter error:", error);
-    return NextResponse.json({ success: false, error: "Failed to generate cover letter." }, { status: 500 });
+    return handleApiError(error, "POST /api/cover-letter");
+  }
+}
+
+// L4: DELETE handler
+export async function DELETE(req: NextRequest) {
+  try {
+    const { userId } = await getUser(req);
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Cover letter ID is required." }, { status: 400 });
+    }
+
+    const deleted = repository.deleteCoverLetter(id);
+    if (!deleted) {
+      return NextResponse.json({ success: false, error: "Cover letter not found." }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, message: "Cover letter deleted." });
+  } catch (error) {
+    return handleApiError(error, "DELETE /api/cover-letter");
   }
 }

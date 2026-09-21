@@ -8,7 +8,7 @@ export class ATSScannerService {
    * 3. Keyword Strength
    * 4. Quantification (Metrics & Impact)
    */
-  public analyzeResume(resumeText: string, resumeName = "My Resume.pdf"): ATSScanResult {
+  public analyzeResume(resumeText: string, resumeName = "My Resume.pdf", resumeId?: string): ATSScanResult {
     const text = resumeText || "";
     const lower = text.toLowerCase();
     const issues: ATSIssue[] = [];
@@ -222,7 +222,8 @@ export class ATSScannerService {
     }
 
     return {
-      id: `ats-${Date.now()}`,
+      id: `ats-${crypto.randomUUID()}`,
+      resumeId,
       resumeName,
       overallScore: overall,
       formattingScore: fScore,

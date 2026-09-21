@@ -1,10 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { repository } from "@/lib/db/repository";
 import { SaveResumeRequestSchema } from "@/lib/validation/resume.schema";
 import { Resume } from "@/types/resume";
+import { getUser } from "@/lib/auth/getUser";
+import { handleApiError } from "@/lib/apiError";
+import { rateLimit, RATE_LIMITS } from "@/lib/rateLimit";
+import crypto from "crypto";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
+    const { userId } = await getUser(req);
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
@@ -19,22 +24,29 @@ export async function GET(req: Request) {
     const resumes = repository.getResumes();
     return NextResponse.json({ success: true, data: resumes });
   } catch (error) {
-    console.error("GET /api/resume error:", error);
-    return NextResponse.json({ success: false, error: "Failed to fetch resume." }, { status: 500 });
+    return handleApiError(error, "GET /api/resume");
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const { userId } = await getUser(req);
+
+    const { limited } = rateLimit(`resume:${userId}`, RATE_LIMITS.standard.maxRequests, RATE_LIMITS.standard.windowMs);
+    if (limited) {
+      return NextResponse.json({ success: false, error: "Too many requests. Please try again later." }, { status: 429 });
+    }
+
     const body = await req.json();
     const validated = SaveResumeRequestSchema.parse(body);
 
-    const resumeId = validated.id || `res-${Date.now()}`;
+    // M4: Use crypto.randomUUID() instead of Date.now()
+    const resumeId = validated.id || `res-${crypto.randomUUID()}`;
     const existing = repository.getResumeById(resumeId);
 
     const resumeToSave: Resume = {
       id: resumeId,
-      userId: existing?.userId || "user-default",
+      userId: existing?.userId || userId,
       title: validated.title,
       targetRole: validated.targetRole,
       templateId: validated.templateId,
@@ -63,11 +75,29 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true, data: saved });
-  } catch (error: any) {
-    console.error("POST /api/resume error:", error);
-    return NextResponse.json(
-      { success: false, error: error?.message || "Invalid resume data." },
-      { status: 400 }
-    );
+  } catch (error) {
+    return handleApiError(error, "POST /api/resume");
+  }
+}
+
+// L4: DELETE handler
+export async function DELETE(req: NextRequest) {
+  try {
+    const { userId } = await getUser(req);
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Resume ID is required." }, { status: 400 });
+    }
+
+    const deleted = repository.deleteResume(id);
+    if (!deleted) {
+      return NextResponse.json({ success: false, error: "Resume not found." }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, message: "Resume deleted." });
+  } catch (error) {
+    return handleApiError(error, "DELETE /api/resume");
   }
 }
