@@ -75,7 +75,7 @@ export function InteractiveBulletDemo() {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      <GlassCard variant="interactive" className="p-6 sm:p-8 rounded-2xl space-y-6">
+      <GlassCard variant="interactive" className="p-7 sm:p-9 rounded-2xl space-y-7">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
@@ -99,10 +99,11 @@ export function InteractiveBulletDemo() {
               <button
                 key={p.role}
                 onClick={() => handleSelectPreset(idx)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${selectedPreset === idx
+                className={`h-9 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all inline-flex items-center justify-center ${
+                  selectedPreset === idx
                     ? "bg-indigo-600 text-white shadow-sm"
                     : "text-slate-600 hover:text-slate-900"
-                  }`}
+                }`}
               >
                 {p.role}
               </button>
@@ -113,7 +114,7 @@ export function InteractiveBulletDemo() {
         {/* Interactive Comparison Box */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
           {/* Input: Average Weak Bullet */}
-          <div className="space-y-3 p-5 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div className="p-5 sm:p-6 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between min-h-[230px]">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-rose-600 flex items-center gap-1">
@@ -126,13 +127,13 @@ export function InteractiveBulletDemo() {
                 value={inputBullet}
                 onChange={(e) => setInputBullet(e.target.value)}
                 rows={3}
-                className="w-full bg-transparent text-xs sm:text-sm text-slate-800 placeholder-slate-400 resize-none outline-none focus:ring-0 leading-relaxed font-sans"
+                className="w-full bg-transparent text-xs sm:text-sm text-slate-900 placeholder-slate-400 resize-none outline-none focus:ring-0 leading-relaxed font-sans"
                 placeholder="Type any ordinary resume bullet here..."
               />
             </div>
 
-            <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs text-slate-500 italic" title={contextText}>
+            <div className="pt-4 mt-auto border-t border-slate-100 flex items-center justify-between gap-3 h-12">
+              <span className="text-xs text-slate-500 italic truncate max-w-[200px]" title={contextText}>
                 Context: {contextText}
               </span>
               <GlassButton
@@ -140,7 +141,7 @@ export function InteractiveBulletDemo() {
                 disabled={isLoading || !inputBullet.trim()}
                 variant="primary"
                 size="sm"
-                className="gap-1.5 text-xs py-1.5 px-3 font-bold"
+                className="h-9 px-4 text-xs font-bold gap-2 shadow-sm"
               >
                 {isLoading ? (
                   <span className="animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />
@@ -155,7 +156,7 @@ export function InteractiveBulletDemo() {
           </div>
 
           {/* Output: Google XYZ Optimized Bullet */}
-          <div className="p-5 sm:p-6 rounded-xl bg-indigo-50/70 border border-indigo-200 flex flex-col justify-between gap-4 shadow-sm">
+          <div className="p-5 sm:p-6 rounded-xl bg-indigo-50/70 border border-indigo-200 flex flex-col justify-between min-h-[230px] shadow-sm">
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 flex items-center gap-1.5">
@@ -166,23 +167,24 @@ export function InteractiveBulletDemo() {
                   ATS Score: 98%
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-900 font-medium leading-relaxed">
                 {improvedBullet}
               </p>
             </div>
 
-            <div className="pt-3 border-t border-indigo-200/60 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold">
-                <span className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-600 border border-indigo-200">Action Verbs</span>
-                <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-600 border border-amber-200">Metrics %</span>
-                <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-600 border border-emerald-200">Tech Scope</span>
+            <div className="pt-4 mt-auto border-t border-indigo-200/60 flex items-center justify-between gap-3 h-12">
+              {/* Informational Legend (not buttons/pills) */}
+              <div className="flex items-center gap-2.5 text-xs text-slate-600" aria-label="Formula element breakdown">
+                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-indigo-600" aria-hidden="true" />Verbs</span>
+                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />Metrics</span>
+                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-600" aria-hidden="true" />Tech</span>
               </div>
 
               <button
                 onClick={handleCopy}
                 type="button"
                 aria-label={copied ? "Copied to clipboard" : "Copy transformed bullet to clipboard"}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-indigo-200 shadow-sm transition-all active:scale-95 cursor-pointer"
+                className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-indigo-200 shadow-sm transition-all active:scale-95 cursor-pointer"
               >
                 {copied ? (
                   <>

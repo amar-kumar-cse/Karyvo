@@ -32,9 +32,9 @@ export default function HomePage() {
       <section className="relative pt-10 sm:pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto z-20">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Left Column: Headline & Value Prop */}
-          <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2">
-              <GlassBadge variant="violet" className="py-1 px-3">
+          <div className="lg:col-span-6 space-y-6 text-center lg:text-left flex flex-col items-center lg:items-start">
+            <div className="flex items-center">
+              <GlassBadge variant="violet" className="py-1 px-3 self-start">
                 <Sparkles className="h-3.5 w-3.5 text-amber-300" />
                 <span>India-First AI Career Platform</span>
               </GlassBadge>
@@ -122,8 +122,9 @@ export default function HomePage() {
             <p className="text-xs text-slate-600 leading-relaxed">
               Your single source of truth. Supports Fresher Mode, College, CGPA, Projects, Skills, Indian CTC expectations, and Notice Period.
             </p>
-            <Link href="/profile" className="text-xs text-indigo-600 font-semibold flex items-center gap-1 pt-1 hover:underline">
-              Setup Profile <ArrowRight className="h-3 w-3" />
+            <Link href="/profile" className="group text-xs text-indigo-600 font-semibold flex items-center gap-2 pt-1 hover:text-indigo-700 transition-colors">
+              <span>Setup Profile</span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Link>
           </GlassCard>
 
@@ -136,8 +137,9 @@ export default function HomePage() {
             <p className="text-xs text-slate-600 leading-relaxed">
               7-step wizard with split physically-lit live preview, Google XYZ formula bullet improvers, and named version snapshots.
             </p>
-            <Link href="/resume" className="text-xs text-violet-600 font-semibold flex items-center gap-1 pt-1 hover:underline">
-              Build Resume <ArrowRight className="h-3 w-3" />
+            <Link href="/resume" className="group text-xs text-indigo-600 font-semibold flex items-center gap-2 pt-1 hover:text-indigo-700 transition-colors">
+              <span>Build Resume</span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Link>
           </GlassCard>
 
@@ -150,8 +152,9 @@ export default function HomePage() {
             <p className="text-xs text-slate-600 leading-relaxed">
               Grades Formatting, Section Completeness, Keyword Strength, and Measurable Quantification without needing a job description.
             </p>
-            <Link href="/ats" className="text-xs text-emerald-600 font-semibold flex items-center gap-1 pt-1 hover:underline">
-              Scan Resume <ArrowRight className="h-3 w-3" />
+            <Link href="/ats" className="group text-xs text-indigo-600 font-semibold flex items-center gap-2 pt-1 hover:text-indigo-700 transition-colors">
+              <span>Scan Resume</span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Link>
           </GlassCard>
 
@@ -164,8 +167,9 @@ export default function HomePage() {
             <p className="text-xs text-slate-600 leading-relaxed">
               Select your target role dropdown. Submit answers to receive instant scoring, actionable improvements, and model solutions.
             </p>
-            <Link href="/interview" className="text-xs text-amber-600 font-semibold flex items-center gap-1 pt-1 hover:underline">
-              Practice Interview <ArrowRight className="h-3 w-3" />
+            <Link href="/interview" className="group text-xs text-indigo-600 font-semibold flex items-center gap-2 pt-1 hover:text-indigo-700 transition-colors">
+              <span>Practice Interview</span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Link>
           </GlassCard>
         </div>

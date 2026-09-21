@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   Menu,
   X,
+  ChevronDown,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GlassBadge } from "@/components/ui/glass";
@@ -21,6 +22,7 @@ export function Navbar() {
   const pathname = usePathname();
   const [isPro, setIsPro] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/payments/create-order")
@@ -31,19 +33,28 @@ export function Navbar() {
       .catch(() => { });
   }, []);
 
-  // Close mobile menu on route change
+  // Close menus on route change
   useEffect(() => {
     setMobileOpen(false);
+    setToolsOpen(false);
   }, [pathname]);
 
-  const navLinks = [
+  const primaryLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/profile", label: "Master Profile", icon: User },
     { href: "/resume", label: "Resume Builder", icon: FileText },
     { href: "/ats", label: "ATS Scanner", icon: ShieldCheck },
-    { href: "/cover-letter", label: "Cover Letter", icon: Send },
     { href: "/interview", label: "Interview AI", icon: Headphones },
   ];
+
+  const secondaryLinks = [
+    { href: "/profile", label: "Master Profile", icon: User },
+    { href: "/cover-letter", label: "Cover Letter", icon: Send },
+  ];
+
+  const allNavLinks = [...primaryLinks, ...secondaryLinks];
+  const isSecondaryActive = secondaryLinks.some(
+    (item) => pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href))
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full px-4 sm:px-6 lg:px-8 pt-3 pb-2">
@@ -66,33 +77,77 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-1 lg:gap-2.5">
-          {navLinks.map((item) => {
+        <nav className="hidden md:flex items-center gap-1 p-1 rounded-xl bg-slate-100/75 border border-slate-200/60 shadow-inner">
+          {primaryLinks.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative flex items-center gap-2 px-3 lg:px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${isActive
-                  ? "text-indigo-700 bg-indigo-50/90 border border-indigo-200/80 shadow-sm font-semibold"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/80 border border-transparent"
-                  }`}
+                aria-current={isActive ? "page" : undefined}
+                className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 ${
+                  isActive
+                    ? "text-indigo-950 bg-white shadow-sm font-semibold after:absolute after:bottom-0 after:left-2.5 after:right-2.5 after:h-0.5 after:bg-indigo-600 after:rounded-full"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium"
+                }`}
               >
                 <Icon className={`h-3.5 w-3.5 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
                 <span>{item.label}</span>
               </Link>
             );
           })}
+
+          {/* More Tools Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setToolsOpen(!toolsOpen)}
+              aria-expanded={toolsOpen}
+              aria-haspopup="true"
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-all ${
+                isSecondaryActive
+                  ? "text-indigo-950 bg-white shadow-sm font-semibold"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium"
+              }`}
+            >
+              <span>More</span>
+              <ChevronDown className={`h-3 w-3 transition-transform ${toolsOpen ? "rotate-180 text-indigo-600" : "text-slate-400"}`} />
+            </button>
+
+            {toolsOpen && (
+              <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white border border-slate-200/80 p-1.5 shadow-lg space-y-0.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                {secondaryLinks.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      aria-current={isActive ? "page" : undefined}
+                      onClick={() => setToolsOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${
+                        isActive
+                          ? "bg-indigo-50 text-indigo-700 font-semibold"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      }`}
+                    >
+                      <Icon className={`h-3.5 w-3.5 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* Actions (Pro Badge, Mobile Toggle) */}
         <div className="flex items-center gap-2">
           <Link
             href="/pricing"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-amber-300 bg-amber-400 hover:bg-amber-300 text-slate-950 font-heading text-xs font-bold shadow-sm transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200/80 bg-white/90 hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-heading text-xs font-semibold shadow-sm transition-all"
           >
-            <Crown className="h-3.5 w-3.5 text-slate-950 fill-slate-950/20" aria-hidden="true" />
+            <Crown className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" aria-hidden="true" />
             <span>{isPro ? "Pro Active" : "Upgrade Pro"}</span>
           </Link>
 
@@ -111,7 +166,7 @@ export function Navbar() {
       {mobileOpen && (
         <div className="md:hidden mt-2 mx-auto max-w-7xl rounded-2xl border border-white/80 bg-white/95 backdrop-blur-2xl p-4 shadow-xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="grid grid-cols-2 gap-2 pb-3 border-b border-slate-100">
-            {navLinks.map((item) => {
+            {allNavLinks.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
               return (

@@ -104,7 +104,7 @@ export function Hero3DResumeCard() {
 
           {/* Skills Grid */}
           <div className="space-y-1.5">
-            <span className="text-xs uppercase font-semibold text-slate-500 tracking-wider">Verified Skill Index</span>
+            <span className="text-xs font-semibold text-slate-600">Verified Skill Index</span>
             <div className="flex flex-wrap gap-1.5">
               {["React/Next.js", "Node.js", "PostgreSQL", "Go", "Docker", "Redis", "System Design"].map((skill) => (
                 <span

@@ -16,8 +16,8 @@ export function Footer() {
             <p className="text-sm leading-relaxed text-slate-600">
               India-first AI career ecosystem. Build your resume, beat ATS filters, craft authentic cover letters, and master interview questions — powered by one single Master Career Profile.
             </p>
-            <div className="flex items-center gap-1.5 text-xs text-amber-700 font-medium">
-              <Shield className="h-3.5 w-3.5 text-amber-600" />
+            <div className="inline-flex items-center gap-1.5 text-xs text-slate-500 bg-slate-100/80 px-2.5 py-1 rounded-lg border border-slate-200/60 select-none">
+              <Shield className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
               <span>Strict AI Integrity Guarantee</span>
             </div>
           </div>
@@ -35,12 +35,27 @@ export function Footer() {
 
           <div>
             <h2 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Indian Tech Markets</h2>
-            <ul className="space-y-2 text-sm text-slate-600">
-              <li>Bengaluru & Hyderabad Tech Hubs</li>
-              <li>Fresher Placement Acceleration</li>
-              <li>CTC & Notice Period Optimization</li>
-              <li>Product & Service Tier Standards</li>
-              <li>RBI-compliant Razorpay Payments</li>
+            <ul className="space-y-2 text-xs text-slate-500">
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-300 shrink-0" aria-hidden="true" />
+                <span>Bengaluru & Hyderabad Tech Hubs</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-300 shrink-0" aria-hidden="true" />
+                <span>Fresher Placement Acceleration</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-300 shrink-0" aria-hidden="true" />
+                <span>CTC & Notice Period Optimization</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-300 shrink-0" aria-hidden="true" />
+                <span>Product & Service Tier Standards</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-300 shrink-0" aria-hidden="true" />
+                <span>RBI-compliant Razorpay Payments</span>
+              </li>
             </ul>
           </div>
 
@@ -51,9 +66,9 @@ export function Footer() {
             </p>
             <Link
               href="/pricing"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-amber-300 bg-amber-400 hover:bg-amber-300 text-slate-950 font-heading text-xs font-bold shadow-sm transition-all"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200/80 bg-white/90 hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-heading text-xs font-semibold shadow-sm transition-all"
             >
-              <Crown className="h-3.5 w-3.5 text-slate-950 fill-slate-950/20" aria-hidden="true" />
+              <Crown className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" aria-hidden="true" />
               <span>Upgrade Pro (₹499/mo)</span>
             </Link>
           </div>
