@@ -102,7 +102,7 @@ export default function HomePage() {
       <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto z-20 relative">
         <div className="text-center space-y-3 mb-12">
           <GlassBadge variant="violet" className="py-1 px-3">
-            THE CONNECTED ARCHITECTURE
+            The Connected Architecture
           </GlassBadge>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 font-heading tracking-tight">
             Enter Your Career Facts Once. Reuse Everywhere.
