@@ -120,7 +120,7 @@ export function MasterProfileWorkspace({ initialProfile }: Props) {
         </div>
 
         {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
           <input
             type="file"
             id="import-profile-input"
@@ -132,10 +132,10 @@ export function MasterProfileWorkspace({ initialProfile }: Props) {
             variant="secondary"
             size="md"
             onClick={() => document.getElementById("import-profile-input")?.click()}
-            className="flex-1 sm:flex-initial"
+            className="justify-center whitespace-nowrap"
             title="Import profile from a JSON backup"
           >
-            <Upload className="h-4 w-4 text-violet-400" />
+            <Upload className="h-4 w-4 text-violet-600" />
             <span>Import JSON</span>
           </GlassButton>
 
@@ -143,10 +143,10 @@ export function MasterProfileWorkspace({ initialProfile }: Props) {
             variant="secondary"
             size="md"
             onClick={handleExportJson}
-            className="flex-1 sm:flex-initial"
+            className="justify-center whitespace-nowrap"
             title="Download profile backup as JSON"
           >
-            <Download className="h-4 w-4 text-emerald-400" />
+            <Download className="h-4 w-4 text-emerald-600" />
             <span>Export JSON</span>
           </GlassButton>
 
@@ -155,7 +155,7 @@ export function MasterProfileWorkspace({ initialProfile }: Props) {
             size="md"
             onClick={handleSave}
             disabled={isSaving}
-            className="w-full sm:w-auto"
+            className="justify-center whitespace-nowrap"
           >
             {isSaving ? (
               <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
@@ -239,54 +239,54 @@ export function MasterProfileWorkspace({ initialProfile }: Props) {
       <GlassPanel
         header={
           <span className="flex items-center gap-2">
-            <User className="h-4 w-4 text-violet-400" />
+            <User className="h-4 w-4 text-violet-600" />
             1. Personal & Contact Information
           </span>
         }
       >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="text-xs text-slate-400 block mb-1">Full Name</label>
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+          <div className="sm:col-span-4">
+            <label className="text-xs text-slate-600 block mb-1">Full Name</label>
             <GlassInput
               type="text"
               value={profile.fullName}
               onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
             />
           </div>
-          <div>
-            <label className="text-xs text-slate-400 block mb-1">Email Address</label>
+          <div className="sm:col-span-4">
+            <label className="text-xs text-slate-600 block mb-1">Email Address</label>
             <GlassInput
               type="email"
               value={profile.email}
               onChange={(e) => setProfile({ ...profile, email: e.target.value })}
             />
           </div>
-          <div>
-            <label className="text-xs text-slate-400 block mb-1">Mobile Contact</label>
+          <div className="sm:col-span-4">
+            <label className="text-xs text-slate-600 block mb-1">Mobile Contact</label>
             <GlassInput
               type="text"
               value={profile.phone}
               onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
             />
           </div>
-          <div>
-            <label className="text-xs text-slate-400 block mb-1">Location</label>
+          <div className="sm:col-span-4">
+            <label className="text-xs text-slate-600 block mb-1">Location</label>
             <GlassInput
               type="text"
               value={profile.location}
               onChange={(e) => setProfile({ ...profile, location: e.target.value })}
             />
           </div>
-          <div>
-            <label className="text-xs text-slate-400 block mb-1">LinkedIn Profile</label>
+          <div className="sm:col-span-4">
+            <label className="text-xs text-slate-600 block mb-1">LinkedIn Profile</label>
             <GlassInput
               type="text"
               value={profile.linkedinUrl}
               onChange={(e) => setProfile({ ...profile, linkedinUrl: e.target.value })}
             />
           </div>
-          <div>
-            <label className="text-xs text-slate-400 block mb-1">GitHub Profile</label>
+          <div className="sm:col-span-4">
+            <label className="text-xs text-slate-600 block mb-1">GitHub Profile</label>
             <GlassInput
               type="text"
               value={profile.githubUrl}
@@ -296,7 +296,7 @@ export function MasterProfileWorkspace({ initialProfile }: Props) {
         </div>
 
         <div>
-          <label className="text-xs text-slate-400 block mb-1">Default Professional Summary</label>
+          <label className="text-xs text-slate-600 block mb-1">Default Professional Summary</label>
           <GlassTextarea
             rows={3}
             value={profile.summary}
@@ -309,91 +309,136 @@ export function MasterProfileWorkspace({ initialProfile }: Props) {
       <GlassPanel
         header={
           <span className="flex items-center gap-2">
-            <GraduationCap className="h-4 w-4 text-violet-400" />
+            <GraduationCap className="h-4 w-4 text-violet-600" />
             2. Academic Background
           </span>
         }
-        actions={
-          <GlassButton
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setProfile((prev) => ({
-                ...prev,
-                education: [
-                  ...prev.education,
-                  {
-                    id: `edu-${Date.now()}`,
-                    college: "",
-                    degree: "B.Tech",
-                    branch: "Computer Science",
-                    cgpa: "8.5",
-                    startYear: "2019",
-                    graduationYear: "2023",
-                  },
-                ],
-              }))
-            }
-            className="text-violet-400 hover:text-violet-300"
-          >
-            <Plus className="h-3.5 w-3.5" /> Add College
-          </GlassButton>
-        }
       >
-        {profile.education.map((edu) => (
-          <div key={edu.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-              <div className="sm:col-span-2">
-                <label className="text-[11px] text-slate-400 block mb-1">College / Institute</label>
-                <GlassInput
-                  type="text"
-                  value={edu.college}
-                  onChange={(e) =>
-                    setProfile((prev) => ({
-                      ...prev,
-                      education: prev.education.map((item) =>
-                        item.id === edu.id ? { ...item, college: e.target.value } : item
-                      ),
-                    }))
-                  }
-                  className="py-1.5 text-xs"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] text-slate-400 block mb-1">Degree & Branch</label>
-                <GlassInput
-                  type="text"
-                  value={`${edu.degree} - ${edu.branch}`}
-                  onChange={(e) =>
-                    setProfile((prev) => ({
-                      ...prev,
-                      education: prev.education.map((item) =>
-                        item.id === edu.id ? { ...item, degree: e.target.value } : item
-                      ),
-                    }))
-                  }
-                  className="py-1.5 text-xs"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] text-slate-400 block mb-1">CGPA / %</label>
-                <GlassInput
-                  type="text"
-                  value={edu.cgpa}
-                  onChange={(e) =>
-                    setProfile((prev) => ({
-                      ...prev,
-                      education: prev.education.map((item) =>
-                        item.id === edu.id ? { ...item, cgpa: e.target.value } : item
-                      ),
-                    }))
-                  }
-                  className="py-1.5 text-xs font-heading font-bold"
-                />
+        <div className="space-y-4">
+          {profile.education.map((edu) => (
+            <div key={edu.id} className="p-4 rounded-xl bg-white/[0.02] border border-slate-200/80 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                <div className="sm:col-span-4">
+                  <label className="text-[11px] text-slate-600 block mb-1">College / Institute</label>
+                  <GlassInput
+                    type="text"
+                    value={edu.college}
+                    onChange={(e) =>
+                      setProfile((prev) => ({
+                        ...prev,
+                        education: prev.education.map((item) =>
+                          item.id === edu.id ? { ...item, college: e.target.value } : item
+                        ),
+                      }))
+                    }
+                    className="py-1.5 text-xs"
+                  />
+                </div>
+                <div className="sm:col-span-4">
+                  <label className="text-[11px] text-slate-600 block mb-1">Degree & Branch</label>
+                  <GlassInput
+                    type="text"
+                    value={edu.branch ? `${edu.degree} - ${edu.branch}` : edu.degree}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const dashIdx = val.indexOf("-");
+                      const degree = dashIdx > -1 ? val.substring(0, dashIdx).trim() : val;
+                      const branch = dashIdx > -1 ? val.substring(dashIdx + 1).trim() : "";
+                      setProfile((prev) => ({
+                        ...prev,
+                        education: prev.education.map((item) =>
+                          item.id === edu.id ? { ...item, degree, branch } : item
+                        ),
+                      }));
+                    }}
+                    className="py-1.5 text-xs"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-[11px] text-slate-600 block mb-1">CGPA / %</label>
+                  <GlassInput
+                    type="text"
+                    value={edu.cgpa}
+                    onChange={(e) =>
+                      setProfile((prev) => ({
+                        ...prev,
+                        education: prev.education.map((item) =>
+                          item.id === edu.id ? { ...item, cgpa: e.target.value } : item
+                        ),
+                      }))
+                    }
+                    className="py-1.5 text-xs font-heading font-bold"
+                  />
+                </div>
+                <div className="sm:col-span-2 flex items-end gap-2">
+                  <div className="flex-1">
+                    <label className="text-[11px] text-slate-600 block mb-1">Grad Year</label>
+                    <GlassInput
+                      type="text"
+                      value={edu.graduationYear || ""}
+                      placeholder="YYYY"
+                      onChange={(e) =>
+                        setProfile((prev) => ({
+                          ...prev,
+                          education: prev.education.map((item) =>
+                            item.id === edu.id ? { ...item, graduationYear: e.target.value } : item
+                          ),
+                        }))
+                      }
+                      className="py-1.5 text-xs"
+                    />
+                  </div>
+                  {profile.education.length > 1 && (
+                    <button
+                      type="button"
+                      aria-label="Remove college entry"
+                      onClick={() =>
+                        setProfile((prev) => ({
+                          ...prev,
+                          education: prev.education.filter((item) => item.id !== edu.id),
+                        }))
+                      }
+                      className="mb-0.5 p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                      title="Remove this college"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
+          ))}
+
+          {/* Add College button moved to bottom of entries */}
+          <div className="pt-1 flex justify-start">
+            <GlassButton
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setProfile((prev) => ({
+                  ...prev,
+                  education: [
+                    ...prev.education,
+                    {
+                      id: `edu-${Date.now()}`,
+                      college: "",
+                      degree: "B.Tech",
+                      branch: "Computer Science",
+                      cgpa: "8.5",
+                      startYear: "2019",
+                      graduationYear: "2023",
+                    },
+                  ],
+                }))
+              }
+              className="border border-dashed border-indigo-200 hover:border-indigo-400 text-indigo-700 bg-indigo-50/40 hover:bg-indigo-50 shadow-none"
+            >
+              <Plus className="h-3.5 w-3.5 text-indigo-600" />
+              <span>Add College</span>
+            </GlassButton>
           </div>
-        ))}
+        </div>
       </GlassPanel>
 
       {/* SECTION 3: SKILLS */}
@@ -460,6 +505,36 @@ export function MasterProfileWorkspace({ initialProfile }: Props) {
           </div>
         </div>
       </GlassPanel>
+
+      {/* Bottom Save Action Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl bg-white/80 backdrop-blur-xl border border-slate-200/90 shadow-sm">
+        <div className="space-y-0.5 text-center sm:text-left">
+          <p className="text-sm font-semibold text-slate-900 font-heading">
+            Ready to commit your updates?
+          </p>
+          <p className="text-xs text-slate-600">
+            Changes saved to your Master Profile automatically sync across your Resume Builder, ATS Scanner, and Interview Coach.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <GlassButton
+            variant="primary"
+            size="md"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="w-full sm:w-auto justify-center whitespace-nowrap shadow-md shadow-indigo-500/20"
+          >
+            {isSaving ? (
+              <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+            ) : saveSuccess ? (
+              <Check className="h-4 w-4 text-emerald-400" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            <span>{saveSuccess ? "Profile Saved!" : "Save Master Profile"}</span>
+          </GlassButton>
+        </div>
+      </div>
     </div>
   );
 }

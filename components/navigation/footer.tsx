@@ -5,8 +5,8 @@ export function Footer() {
   return (
     <footer className="border-t border-slate-200/80 bg-white/75 backdrop-blur-xl py-12 text-slate-600">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
-          <div className="space-y-3 md:col-span-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 mb-10">
+          <div className="space-y-3">
             <div className="flex items-center gap-2">
               <div className="h-7 w-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-sm">
                 <Sparkles className="h-4 w-4" />
@@ -23,7 +23,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Connected Platform</h3>
+            <h2 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Connected Platform</h2>
             <ul className="space-y-2 text-xs">
               <li><Link href="/profile" className="text-slate-600 hover:text-indigo-600 transition-colors">Master Career Profile</Link></li>
               <li><Link href="/resume" className="text-slate-600 hover:text-indigo-600 transition-colors">7-Step Resume Builder</Link></li>
@@ -34,7 +34,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Indian Tech Markets</h3>
+            <h2 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Indian Tech Markets</h2>
             <ul className="space-y-2 text-xs text-slate-600">
               <li>Bengaluru & Hyderabad Tech Hubs</li>
               <li>Fresher Placement Acceleration</li>
@@ -45,13 +45,13 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Pro Access</h3>
-            <p className="text-xs text-slate-600 mb-3">
+            <h2 className="text-sm font-semibold text-slate-900 mb-3 font-heading">Pro Access</h2>
+            <p className="text-xs text-slate-600 mb-3 leading-relaxed">
               Unlock unlimited AI bullet enhancements, executive PDF rendering, and role interview simulations.
             </p>
             <Link
               href="/pricing"
-              className="inline-block px-3.5 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 text-xs font-semibold shadow-sm transition-all"
+              className="inline-block px-3.5 py-1.5 rounded-xl border border-slate-200/90 bg-white/90 hover:bg-white text-slate-700 hover:text-indigo-600 text-xs font-semibold shadow-sm transition-all"
             >
               Explore Pro Plan (₹499/mo)
             </Link>

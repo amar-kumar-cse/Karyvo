@@ -1,10 +1,11 @@
 import { repository } from "@/lib/db/repository";
 import { ATSScannerWorkspace } from "@/components/ats/ats-scanner-workspace";
+import { atsScanner } from "@/lib/ats/scanner";
 
 export const dynamic = "force-dynamic";
 
 export default async function ATSPage() {
-  const scans = repository.getATSScans();
+  let scans = repository.getATSScans();
   const resumes = repository.getResumes();
   const primaryResume = resumes[0];
 
@@ -38,6 +39,13 @@ SKILLS
 Technical: ${c.skills.technical.join(", ")}
 Frameworks: ${c.skills.frameworks.join(", ")}
 Tools: ${c.skills.tools.join(", ")}`;
+  }
+
+  // Pre-seed initial scan if repository has no scan history yet
+  if (scans.length === 0 && sampleText) {
+    const defaultScan = atsScanner.analyzeResume(sampleText, "Arjun_Sharma_Resume.pdf");
+    repository.saveATSScan(defaultScan);
+    scans = [defaultScan];
   }
 
   return <ATSScannerWorkspace initialScans={scans} sampleResumeText={sampleText} />;

@@ -222,7 +222,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
     <div className="mx-auto max-w-[1600px] px-3 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Top Floating Glass Header Bar */}
       <GlassPanel className="p-4 sm:p-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <input
@@ -236,89 +236,93 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
               </GlassBadge>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-600">
-              <span>Target Role:</span>
-              <input
-                type="text"
-                value={resume.targetRole}
-                onChange={(e) => setResume({ ...resume, targetRole: e.target.value })}
-                placeholder="e.g. Full-Stack Developer"
-                className="bg-white/90 px-2.5 py-1 rounded-lg text-slate-800 border border-slate-200 focus:border-indigo-500 focus:outline-none text-xs shadow-sm"
-              />
+              <span className="font-medium text-slate-500">Target Role:</span>
+              <span className="font-semibold text-slate-800 bg-slate-100/90 px-2.5 py-0.5 rounded-md border border-slate-200">
+                {resume.targetRole || "Not specified"}
+              </span>
             </div>
           </div>
 
           {/* Action Controls */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-            {/* Template Switcher */}
-            <select
-              value={resume.templateId}
-              onChange={(e) => setResume({ ...resume, templateId: e.target.value as any })}
-              className="bg-white/95 text-xs font-medium text-slate-800 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500 shadow-sm"
-            >
-              <option value="modern-tech">Template: Modern Tech</option>
-              <option value="minimal-ats">Template: Minimal ATS</option>
-              <option value="executive">Template: Executive</option>
-              <option value="fresher-friendly">Template: Fresher Friendly</option>
-            </select>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            {/* Configuration Group */}
+            <div className="flex items-center">
+              <label htmlFor="resume-template-selector" className="sr-only">Resume Template</label>
+              <select
+                id="resume-template-selector"
+                value={resume.templateId}
+                onChange={(e) => setResume({ ...resume, templateId: e.target.value as any })}
+                className="h-9 bg-white/95 text-xs font-medium text-slate-800 border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shadow-sm"
+              >
+                <option value="modern-tech">Template: Modern Tech</option>
+                <option value="minimal-ats">Template: Minimal ATS</option>
+                <option value="executive">Template: Executive</option>
+                <option value="fresher-friendly">Template: Fresher Friendly</option>
+              </select>
+            </div>
 
-            {/* Sync from Master Profile */}
-            <GlassButton
-              variant="secondary"
-              size="sm"
-              onClick={handleSyncFromProfile}
-              title="Import updated facts from Master Career Profile"
-            >
-              <RotateCcw className="h-3.5 w-3.5 text-indigo-400" />
-              <span className="hidden sm:inline">Sync Profile</span>
-            </GlassButton>
+            {/* Action Buttons Group */}
+            <div className="flex items-center gap-2">
+              <GlassButton
+                variant="secondary"
+                size="sm"
+                className="h-9"
+                onClick={handleSyncFromProfile}
+                title="Import updated facts from Master Career Profile"
+              >
+                <RotateCcw className="h-3.5 w-3.5 text-indigo-600" />
+                <span className="hidden sm:inline">Sync</span>
+              </GlassButton>
 
-            {/* Version History Button */}
-            <GlassButton
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowVersionModal(true)}
-            >
-              <History className="h-3.5 w-3.5 text-amber-400" />
-              <span>Versions ({versions.length})</span>
-            </GlassButton>
+              <GlassButton
+                variant="secondary"
+                size="sm"
+                className="h-9"
+                onClick={() => setShowVersionModal(true)}
+              >
+                <History className="h-3.5 w-3.5 text-slate-600" />
+                <span>Versions ({versions.length})</span>
+              </GlassButton>
 
-            {/* Print/Download PDF */}
-            <GlassButton
-              variant="outline"
-              size="sm"
-              onClick={() => window.print()}
-              className="border-amber-400/40 text-amber-300 hover:bg-amber-500/10"
-            >
-              <FileDown className="h-3.5 w-3.5" />
-              <span>Print PDF</span>
-            </GlassButton>
+              <GlassButton
+                variant="secondary"
+                size="sm"
+                className="h-9"
+                onClick={() => window.print()}
+              >
+                <FileDown className="h-3.5 w-3.5 text-slate-600" />
+                <span>Print</span>
+              </GlassButton>
 
-            {/* Save Button */}
-            <GlassButton
-              variant="primary"
-              size="sm"
-              onClick={handleSaveResume}
-              loading={isSaving}
-            >
-              {saveSuccess ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Save className="h-3.5 w-3.5" />}
-              <span>{saveSuccess ? "Saved!" : "Save Resume"}</span>
-            </GlassButton>
+              <GlassButton
+                variant="primary"
+                size="sm"
+                className="h-9"
+                onClick={handleSaveResume}
+                loading={isSaving}
+              >
+                {saveSuccess ? <Check className="h-3.5 w-3.5 text-emerald-300" /> : <Save className="h-3.5 w-3.5" />}
+                <span>{saveSuccess ? "Saved" : "Save"}</span>
+              </GlassButton>
+            </div>
           </div>
         </div>
       </GlassPanel>
 
       {/* Mobile Tab Switcher (Edit vs Preview) */}
-      <div className="flex md:hidden items-center justify-center p-1 rounded-2xl glass-surface border border-white/[0.08]">
+      <div className="flex md:hidden items-center justify-center p-1 rounded-2xl glass-surface border border-slate-200 bg-white/60">
         <button
+          type="button"
           onClick={() => setMobileTab("edit")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-all ${mobileTab === "edit" ? "bg-violet-600 text-white shadow-md" : "text-slate-400"
+          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-all ${mobileTab === "edit" ? "bg-indigo-600 text-white shadow-md" : "text-slate-600"
             }`}
         >
           <Edit3 className="h-3.5 w-3.5" /> Edit Resume
         </button>
         <button
+          type="button"
           onClick={() => setMobileTab("preview")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-all ${mobileTab === "preview" ? "bg-violet-600 text-white shadow-md" : "text-slate-400"
+          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-all ${mobileTab === "preview" ? "bg-indigo-600 text-white shadow-md" : "text-slate-600"
             }`}
         >
           <Eye className="h-3.5 w-3.5" /> Live Preview
@@ -331,14 +335,15 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
           {steps.map((s) => (
             <button
               key={s.num}
+              type="button"
               onClick={() => setStep(s.num)}
               className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all duration-200 ${step === s.num
-                  ? "bg-violet-600/20 text-violet-200 border-violet-500/40 shadow-[0_0_15px_rgba(139,92,246,0.18)]"
-                  : "bg-white/[0.02] text-slate-400 border-white/[0.06] hover:bg-white/[0.05]"
+                  ? "bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm"
+                  : "bg-white/70 text-slate-600 border-slate-200/80 hover:bg-white hover:text-slate-900"
                 }`}
             >
               <span
-                className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold font-heading ${step === s.num ? "bg-violet-600 text-white" : "bg-white/10 text-slate-400"
+                className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold font-heading ${step === s.num ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-600"
                   }`}
               >
                 {s.num}
@@ -363,7 +368,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
             <GlassPanel header="1. Personal & Contact Information">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Full Name</label>
+                  <label className="text-xs text-slate-600 font-medium block mb-1">Full Name</label>
                   <GlassInput
                     type="text"
                     value={content.personal.fullName}
@@ -373,7 +378,16 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Email</label>
+                  <label className="text-xs text-slate-600 font-medium block mb-1">Target Role</label>
+                  <GlassInput
+                    type="text"
+                    placeholder="e.g. Full-Stack Developer"
+                    value={resume.targetRole}
+                    onChange={(e) => setResume({ ...resume, targetRole: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-600 font-medium block mb-1">Email</label>
                   <GlassInput
                     type="email"
                     value={content.personal.email}
@@ -383,7 +397,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Phone</label>
+                  <label className="text-xs text-slate-600 font-medium block mb-1">Phone</label>
                   <GlassInput
                     type="text"
                     value={content.personal.phone}
@@ -393,7 +407,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Location</label>
+                  <label className="text-xs text-slate-600 font-medium block mb-1">Location</label>
                   <GlassInput
                     type="text"
                     value={content.personal.location}
@@ -403,7 +417,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">LinkedIn URL</label>
+                  <label className="text-xs text-slate-600 font-medium block mb-1">LinkedIn URL</label>
                   <GlassInput
                     type="text"
                     value={content.personal.linkedinUrl}
@@ -413,7 +427,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">GitHub URL</label>
+                  <label className="text-xs text-slate-600 font-medium block mb-1">GitHub URL</label>
                   <GlassInput
                     type="text"
                     value={content.personal.githubUrl}
@@ -425,14 +439,15 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
               </div>
 
               {/* Summary with AI Generator */}
-              <div className="pt-2">
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs text-slate-400">Professional Summary</label>
+              <div className="pt-3">
+                <div className="flex items-center justify-between sm:justify-start gap-3 mb-1.5">
+                  <label className="text-xs text-slate-600 font-medium">Professional Summary</label>
                   <button
+                    type="button"
                     onClick={handleGenerateSummary}
-                    className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 font-semibold"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-xs font-semibold text-indigo-700 transition-colors"
                   >
-                    <Wand2 className="h-3 w-3" />
+                    <Wand2 className="h-3 w-3 text-indigo-600" />
                     <span>AI Generate Summary</span>
                   </button>
                 </div>
@@ -472,7 +487,6 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                       ],
                     }))
                   }
-                  className="text-violet-400"
                 >
                   <Plus className="h-3.5 w-3.5" /> Add Degree
                 </GlassButton>
@@ -481,22 +495,23 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
               {content.education.map((edu, idx) => (
                 <div key={edu.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold text-violet-300 font-heading">Degree #{idx + 1}</span>
+                    <span className="text-xs font-semibold text-slate-900 font-heading">Degree #{idx + 1}</span>
                     <button
+                      type="button"
                       onClick={() =>
                         setContent((prev) => ({
                           ...prev,
                           education: prev.education.filter((e) => e.id !== edu.id),
                         }))
                       }
-                      className="text-slate-500 hover:text-rose-400"
+                      className="text-slate-500 hover:text-rose-500"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">College / University</label>
+                      <label className="text-xs text-slate-600 font-medium block mb-1">College / University</label>
                       <GlassInput
                         type="text"
                         value={edu.college}
@@ -512,7 +527,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">Degree & Branch</label>
+                      <label className="text-xs text-slate-600 font-medium block mb-1">Degree & Branch</label>
                       <GlassInput
                         type="text"
                         value={`${edu.degree} in ${edu.branch}`}
@@ -528,7 +543,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">CGPA / Percentage</label>
+                      <label className="text-xs text-slate-600 font-medium block mb-1">CGPA / Percentage</label>
                       <GlassInput
                         type="text"
                         value={edu.cgpa}
@@ -545,7 +560,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">Graduation Year</label>
+                      <label className="text-xs text-slate-600 font-medium block mb-1">Graduation Year</label>
                       <GlassInput
                         type="text"
                         value={edu.graduationYear}
@@ -592,7 +607,6 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                       ],
                     }))
                   }
-                  className="text-violet-400"
                 >
                   <Plus className="h-3.5 w-3.5" /> Add Experience
                 </GlassButton>
@@ -601,17 +615,18 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
               {content.experience.map((exp) => (
                 <div key={exp.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold text-violet-300 font-heading">
+                    <span className="text-xs font-semibold text-slate-900 font-heading">
                       {exp.company || "New Company"}
                     </span>
                     <button
+                      type="button"
                       onClick={() =>
                         setContent((prev) => ({
                           ...prev,
                           experience: prev.experience.filter((e) => e.id !== exp.id),
                         }))
                       }
-                      className="text-slate-500 hover:text-rose-400"
+                      className="text-slate-500 hover:text-rose-500"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -619,7 +634,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">Company</label>
+                      <label className="text-xs text-slate-600 font-medium block mb-1">Company</label>
                       <GlassInput
                         type="text"
                         value={exp.company}
@@ -635,7 +650,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">Role Title</label>
+                      <label className="text-xs text-slate-600 font-medium block mb-1">Role Title</label>
                       <GlassInput
                         type="text"
                         value={exp.role}
@@ -655,8 +670,9 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                   {/* Bullet points */}
                   <div className="space-y-2 pt-2">
                     <div className="flex justify-between items-center">
-                      <label className="text-[11px] font-semibold text-slate-400">Accomplishment Bullets</label>
+                      <label className="text-xs font-semibold text-slate-700">Accomplishment Bullets</label>
                       <button
+                        type="button"
                         onClick={() =>
                           setContent((prev) => ({
                             ...prev,
@@ -667,7 +683,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                             ),
                           }))
                         }
-                        className="text-[11px] text-violet-400 hover:underline"
+                        className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
                       >
                         + Add Bullet
                       </button>
@@ -695,12 +711,13 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                             className="p-2 text-xs"
                           />
                           <button
+                            type="button"
                             onClick={() => handleImproveBullet("exp", exp.id, bIdx)}
                             disabled={improvingIndex === `exp-${exp.id}-${bIdx}`}
                             title="Transform using Google XYZ Formula"
-                            className="p-2 rounded-xl bg-violet-600/20 hover:bg-violet-600/35 border border-violet-500/30 text-violet-300 text-xs flex items-center gap-1 font-medium transition-all shrink-0"
+                            className="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs flex items-center gap-1 font-medium transition-colors shrink-0 disabled:opacity-50"
                           >
-                            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                            <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
                             <span className="hidden sm:inline">XYZ AI</span>
                           </button>
                         </div>
@@ -735,7 +752,6 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                       ],
                     }))
                   }
-                  className="text-violet-400"
                 >
                   <Plus className="h-3.5 w-3.5" /> Add Project
                 </GlassButton>
@@ -744,24 +760,25 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
               {content.projects.map((proj) => (
                 <div key={proj.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold text-violet-300 font-heading">
+                    <span className="text-xs font-semibold text-slate-900 font-heading">
                       {proj.title || "Project Title"}
                     </span>
                     <button
+                      type="button"
                       onClick={() =>
                         setContent((prev) => ({
                           ...prev,
                           projects: prev.projects.filter((p) => p.id !== proj.id),
                         }))
                       }
-                      className="text-slate-500 hover:text-rose-400"
+                      className="text-slate-500 hover:text-rose-500"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">Project Title</label>
+                      <label className="text-xs text-slate-600 font-medium block mb-1">Project Title</label>
                       <GlassInput
                         type="text"
                         value={proj.title}
@@ -777,7 +794,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">Tech Stack (comma separated)</label>
+                      <label className="text-xs text-slate-600 font-medium block mb-1">Tech Stack (comma separated)</label>
                       <GlassInput
                         type="text"
                         value={proj.techStack?.join(", ") || ""}
@@ -808,249 +825,250 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
                               ...prev,
                               projects: prev.projects.map((item) =>
                                 item.id === proj.id
-                                  ? {
+                                ? {
                                     ...item,
                                     bullets: item.bullets.map((bul, i) => (i === bIdx ? e.target.value : bul)),
                                   }
-                                  : item
-                              ),
-                            }))
-                          }
-                          className="p-2 text-xs"
-                        />
-                        <button
-                          onClick={() => handleImproveBullet("proj", proj.id, bIdx)}
-                          className="p-2 rounded-xl bg-violet-600/20 hover:bg-violet-600/35 border border-violet-500/30 text-violet-300 text-xs flex items-center gap-1 font-medium shrink-0"
-                        >
-                          <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-                          <span className="hidden sm:inline">XYZ AI</span>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </GlassPanel>
-          )}
-
-          {/* STEP 5: SKILLS */}
-          {step === 5 && (
-            <GlassPanel header="5. Technical & Leadership Competencies">
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Core & Technical Skills</label>
-                  <GlassInput
-                    type="text"
-                    value={content.skills.technical.join(", ")}
-                    onChange={(e) =>
-                      setContent({
-                        ...content,
-                        skills: {
-                          ...content.skills,
-                          technical: e.target.value.split(",").map((s) => s.trim()),
-                        },
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Frameworks & Libraries</label>
-                  <GlassInput
-                    type="text"
-                    value={content.skills.frameworks.join(", ")}
-                    onChange={(e) =>
-                      setContent({
-                        ...content,
-                        skills: {
-                          ...content.skills,
-                          frameworks: e.target.value.split(",").map((s) => s.trim()),
-                        },
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Tools, Databases & Cloud</label>
-                  <GlassInput
-                    type="text"
-                    value={content.skills.tools.join(", ")}
-                    onChange={(e) =>
-                      setContent({
-                        ...content,
-                        skills: {
-                          ...content.skills,
-                          tools: e.target.value.split(",").map((s) => s.trim()),
-                        },
-                      })
-                    }
-                  />
+                                : item
+                            ),
+                          }))
+                        }
+                        className="p-2 text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleImproveBullet("proj", proj.id, bIdx)}
+                        className="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs flex items-center gap-1 font-medium transition-colors shrink-0"
+                      >
+                        <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                        <span className="hidden sm:inline">XYZ AI</span>
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </GlassPanel>
-          )}
+            ))}
+          </GlassPanel>
+        )}
 
-          {/* STEP 6: CERTIFICATIONS */}
-          {step === 6 && (
-            <GlassPanel header="6. Certifications & Key Achievements">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-xs text-slate-400 font-semibold block">Key Honors & Hackathon Ranks</label>
-                  <GlassTextarea
-                    rows={3}
-                    value={content.achievements.join("\n")}
-                    onChange={(e) =>
-                      setContent({
-                        ...content,
-                        achievements: e.target.value.split("\n").filter((a) => a.trim()),
-                      })
-                    }
-                    placeholder="Enter one achievement per line"
-                  />
-                </div>
+        {/* STEP 5: SKILLS */}
+        {step === 5 && (
+          <GlassPanel header="5. Technical & Leadership Competencies">
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-600 font-medium block mb-1">Core & Technical Skills</label>
+                <GlassInput
+                  type="text"
+                  value={content.skills.technical.join(", ")}
+                  onChange={(e) =>
+                    setContent({
+                      ...content,
+                      skills: {
+                        ...content.skills,
+                        technical: e.target.value.split(",").map((s) => s.trim()),
+                      },
+                    })
+                  }
+                />
               </div>
-            </GlassPanel>
-          )}
-
-          {/* STEP 7: FINALIZE, LABEL-BASED VERSIONING & PRINT */}
-          {step === 7 && (
-            <GlassPanel header="7. Finalize, Version & Export">
-              {/* Version Snapshot Section */}
-              <div className="p-4 rounded-xl border border-indigo-500/30 bg-indigo-500/[0.04] space-y-3">
-                <div className="flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-indigo-600" />
-                  <span className="text-sm font-semibold text-slate-900 font-heading">Save as Labeled Version</span>
-                </div>
-                <p className="text-xs text-slate-600">
-                  Tag this snapshot so you can instantly switch between focused variants (e.g. &quot;Backend Focus&quot;, &quot;Fresher Placement&quot;, &quot;SDE-2&quot;).
-                </p>
-                <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                  <GlassInput
-                    type="text"
-                    value={newVersionLabel}
-                    onChange={(e) => setNewVersionLabel(e.target.value)}
-                    placeholder="e.g. Backend Focus v2"
-                    className="flex-1 py-1.5 text-xs"
-                  />
-                  <GlassButton
-                    variant="primary"
-                    size="sm"
-                    onClick={() => {
-                      setCreateVersionOnSave(true);
-                      handleSaveResume();
-                    }}
-                  >
-                    Snapshot Version
-                  </GlassButton>
-                </div>
+              <div>
+                <label className="text-xs text-slate-600 font-medium block mb-1">Frameworks & Libraries</label>
+                <GlassInput
+                  type="text"
+                  value={content.skills.frameworks.join(", ")}
+                  onChange={(e) =>
+                    setContent({
+                      ...content,
+                      skills: {
+                        ...content.skills,
+                        frameworks: e.target.value.split(",").map((s) => s.trim()),
+                      },
+                    })
+                  }
+                />
               </div>
+              <div>
+                <label className="text-xs text-slate-600 font-medium block mb-1">Tools, Databases & Cloud</label>
+                <GlassInput
+                  type="text"
+                  value={content.skills.tools.join(", ")}
+                  onChange={(e) =>
+                    setContent({
+                      ...content,
+                      skills: {
+                        ...content.skills,
+                        tools: e.target.value.split(",").map((s) => s.trim()),
+                      },
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </GlassPanel>
+        )}
 
-              {/* PDF Export Banner */}
-              <div className="p-4 rounded-xl border border-amber-400/30 bg-amber-500/[0.04] space-y-2">
-                <span className="text-sm font-semibold text-amber-300 block font-heading">
-                  Print & Chromium Export Ready
-                </span>
-                <p className="text-xs text-slate-400">
-                  Your resume preview matches the exported PDF pixel-for-pixel with zero client-side layout distortion.
-                </p>
+        {/* STEP 6: CERTIFICATIONS */}
+        {step === 6 && (
+          <GlassPanel header="6. Certifications & Key Achievements">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs text-slate-600 font-medium block">Key Honors & Hackathon Ranks</label>
+                <GlassTextarea
+                  rows={3}
+                  value={content.achievements.join("\n")}
+                  onChange={(e) =>
+                    setContent({
+                      ...content,
+                      achievements: e.target.value.split("\n").filter((a) => a.trim()),
+                    })
+                  }
+                  placeholder="Enter one achievement per line"
+                />
+              </div>
+            </div>
+          </GlassPanel>
+        )}
+
+        {/* STEP 7: FINALIZE, LABEL-BASED VERSIONING & PRINT */}
+        {step === 7 && (
+          <GlassPanel header="7. Finalize, Version & Export">
+            {/* Version Snapshot Section */}
+            <div className="p-4 rounded-xl border border-indigo-500/30 bg-indigo-500/[0.04] space-y-3">
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-indigo-600" />
+                <span className="text-sm font-semibold text-slate-900 font-heading">Save as Labeled Version</span>
+              </div>
+              <p className="text-xs text-slate-600">
+                Tag this snapshot so you can instantly switch between focused variants (e.g. &quot;Backend Focus&quot;, &quot;Fresher Placement&quot;, &quot;SDE-2&quot;).
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                <GlassInput
+                  type="text"
+                  value={newVersionLabel}
+                  onChange={(e) => setNewVersionLabel(e.target.value)}
+                  placeholder="e.g. Backend Focus v2"
+                  className="flex-1 py-1.5 text-xs"
+                />
                 <GlassButton
-                  variant="gold"
-                  size="md"
-                  onClick={() => window.print()}
-                  className="mt-2"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    setCreateVersionOnSave(true);
+                    handleSaveResume();
+                  }}
                 >
-                  <Download className="h-4 w-4" />
-                  <span>Download / Print Clean PDF</span>
+                  Snapshot Version
                 </GlassButton>
               </div>
-            </GlassPanel>
-          )}
-
-          {/* Bottom Step Prev/Next Navigator */}
-          <div className="flex justify-between items-center pt-2">
-            <GlassButton
-              variant="outline"
-              size="sm"
-              onClick={() => setStep((s) => Math.max(1, s - 1))}
-              disabled={step === 1}
-            >
-              <ArrowLeft className="h-3.5 w-3.5" /> Previous
-            </GlassButton>
-            <GlassButton
-              variant="primary"
-              size="sm"
-              onClick={() => setStep((s) => Math.min(7, s + 1))}
-              disabled={step === 7}
-            >
-              Next Step <ArrowRight className="h-3.5 w-3.5" />
-            </GlassButton>
-          </div>
-        </div>
-
-        {/* ========================================================= */}
-        {/* RIGHT COLUMN: PHYSICALLY-LIT FLOATING LIVE PREVIEW */}
-        {/* ========================================================= */}
-        <div
-          className={`lg:col-span-6 sticky top-24 ${mobileTab === "edit" ? "hidden lg:block" : "block"
-            }`}
-        >
-          <div className="flex justify-between items-center px-4 py-2 mb-2 rounded-xl glass-surface border border-white/[0.06] text-xs text-slate-400">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Real-time Tactile Document Rendering</span>
             </div>
-            <span className="font-heading text-[11px] text-violet-300 font-bold">100% ATS Safe</span>
-          </div>
 
-          <PhysicallyLitResumePreview content={content} templateId={resume.templateId} />
+            {/* PDF Export Banner */}
+            <div className="p-4 rounded-xl border border-slate-200 bg-white/80 space-y-2">
+              <span className="text-sm font-semibold text-slate-900 block font-heading">
+                Print & Chromium Export Ready
+              </span>
+              <p className="text-xs text-slate-600">
+                Your resume preview matches the exported PDF pixel-for-pixel with zero client-side layout distortion.
+              </p>
+              <GlassButton
+                variant="primary"
+                size="md"
+                onClick={() => window.print()}
+                className="mt-2"
+              >
+                <Download className="h-4 w-4" />
+                <span>Download / Print Clean PDF</span>
+              </GlassButton>
+            </div>
+          </GlassPanel>
+        )}
+
+        {/* Bottom Step Prev/Next Navigator */}
+        <div className="flex justify-between items-center pt-2">
+          <GlassButton
+            variant="outline"
+            size="sm"
+            onClick={() => setStep((s) => Math.max(1, s - 1))}
+            disabled={step === 1}
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Previous
+          </GlassButton>
+          <GlassButton
+            variant="primary"
+            size="sm"
+            onClick={() => setStep((s) => Math.min(7, s + 1))}
+            disabled={step === 7}
+          >
+            Next Step <ArrowRight className="h-3.5 w-3.5" />
+          </GlassButton>
         </div>
       </div>
 
-      {/* Version History Modal */}
-      <GlassModal
-        isOpen={showVersionModal}
-        onClose={() => setShowVersionModal(false)}
-        title="Resume Version History"
-        icon={<History className="h-4 w-4 text-amber-400" />}
+      {/* ========================================================= */}
+      {/* RIGHT COLUMN: PHYSICALLY-LIT FLOATING LIVE PREVIEW */}
+      {/* ========================================================= */}
+      <div
+        className={`lg:col-span-6 sticky top-24 ${mobileTab === "edit" ? "hidden lg:block" : "block"
+          }`}
       >
-        <div className="max-h-[350px] overflow-y-auto space-y-2.5">
-          {versions.length === 0 ? (
-            <p className="text-xs text-slate-400 text-center py-6">No snapshots saved yet.</p>
-          ) : (
-            versions.map((v) => (
-              <div
-                key={v.id}
-                className="p-3.5 rounded-xl bg-white/80 border border-slate-200 flex items-center justify-between shadow-sm"
-              >
-                <div>
-                  <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5 font-heading">
-                    <span>{v.versionLabel}</span>
-                    <GlassBadge variant="violet" className="text-[10px] py-0 px-1.5">
-                      v{v.versionNumber}
-                    </GlassBadge>
-                  </div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">
-                    {new Date(v.createdAt).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </div>
-                  {v.changeSummary && (
-                    <p className="text-[11px] text-slate-500 mt-1 italic">{v.changeSummary}</p>
-                  )}
-                </div>
-                <GlassButton
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleRestoreVersion(v)}
-                >
-                  Restore
-                </GlassButton>
-              </div>
-            ))
-          )}
+        <div className="flex justify-between items-center px-4 py-2 mb-2 rounded-xl glass-surface border border-slate-200 text-xs text-slate-600">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Real-time Tactile Document Rendering</span>
+          </div>
+          <span className="font-heading text-xs text-indigo-600 font-bold">100% ATS Safe</span>
         </div>
-      </GlassModal>
+
+        <PhysicallyLitResumePreview content={content} templateId={resume.templateId} />
+      </div>
+    </div>
+
+    {/* Version History Modal */}
+    <GlassModal
+      isOpen={showVersionModal}
+      onClose={() => setShowVersionModal(false)}
+      title="Resume Version History"
+      icon={<History className="h-4 w-4 text-indigo-600" />}
+    >
+      <div className="max-h-[350px] overflow-y-auto space-y-2.5">
+        {versions.length === 0 ? (
+          <p className="text-xs text-slate-500 text-center py-6">No snapshots saved yet.</p>
+        ) : (
+          versions.map((v) => (
+            <div
+              key={v.id}
+              className="p-3.5 rounded-xl bg-white/80 border border-slate-200 flex items-center justify-between shadow-sm"
+            >
+              <div>
+                <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5 font-heading">
+                  <span>{v.versionLabel}</span>
+                  <GlassBadge variant="violet" className="text-[10px] py-0 px-1.5">
+                    v{v.versionNumber}
+                  </GlassBadge>
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  {new Date(v.createdAt).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </div>
+                {v.changeSummary && (
+                  <p className="text-xs text-slate-500 mt-1 italic">{v.changeSummary}</p>
+                )}
+              </div>
+              <GlassButton
+                variant="outline"
+                size="sm"
+                onClick={() => handleRestoreVersion(v)}
+              >
+                Restore
+              </GlassButton>
+            </div>
+          ))
+        )}
+      </div>
+    </GlassModal>
     </div>
   );
 }

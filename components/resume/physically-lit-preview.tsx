@@ -68,7 +68,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
             {/* Summary */}
             {personal.summary && (
               <div>
-                <h2 className="text-xs font-bold tracking-wider uppercase text-indigo-900 mb-1.5 border-b border-slate-200 pb-1">
+                <h2 className="text-sm font-bold text-slate-900 mb-1.5 border-b border-slate-200 pb-1">
                   Professional Summary
                 </h2>
                 <p className="text-xs text-slate-700 leading-relaxed">{personal.summary}</p>
@@ -78,7 +78,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
             {/* Experience */}
             {experience && experience.length > 0 && (
               <div>
-                <h2 className="text-xs font-bold tracking-wider uppercase text-indigo-900 mb-3 border-b border-slate-200 pb-1">
+                <h2 className="text-sm font-bold text-slate-900 mb-3 border-b border-slate-200 pb-1">
                   Work Experience
                 </h2>
                 <div className="space-y-4">
@@ -86,13 +86,13 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
                     <div key={exp.id} className="space-y-1">
                       <div className="flex justify-between items-baseline">
                         <div className="font-bold text-slate-900 text-sm">{exp.role}</div>
-                        <div className="text-[11px] text-slate-500 font-medium">
+                        <div className="text-xs text-slate-600 font-medium">
                           {exp.startDate} – {exp.isCurrent ? "Present" : exp.endDate}
                         </div>
                       </div>
-                      <div className="flex justify-between text-xs text-indigo-800 font-semibold">
+                      <div className="flex justify-between text-xs text-indigo-700 font-semibold">
                         <span>{exp.company}</span>
-                        <span className="text-slate-500 font-normal">{exp.location}</span>
+                        <span className="text-slate-600 font-normal">{exp.location}</span>
                       </div>
                       <ul className="list-disc list-outside ml-4 text-xs text-slate-700 space-y-1 pt-1">
                         {exp.bullets.map((b, i) => (
@@ -108,7 +108,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
             {/* Projects */}
             {projects && projects.length > 0 && (
               <div>
-                <h2 className="text-xs font-bold tracking-wider uppercase text-indigo-900 mb-3 border-b border-slate-200 pb-1">
+                <h2 className="text-sm font-bold text-slate-900 mb-3 border-b border-slate-200 pb-1">
                   Key Technical Projects
                 </h2>
                 <div className="space-y-3.5">
@@ -117,10 +117,10 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
                       <div className="flex justify-between items-center">
                         <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                           {proj.title}
-                          {proj.liveUrl && <ExternalLink className="h-3 w-3 text-indigo-600" />}
+                          {proj.liveUrl && <ExternalLink className="h-3.5 w-3.5 text-indigo-600" />}
                         </span>
                         {proj.techStack?.length > 0 && (
-                          <span className="text-[11px] text-slate-500 font-mono">
+                          <span className="text-xs text-slate-600 font-mono">
                             {proj.techStack.join(" • ")}
                           </span>
                         )}
@@ -139,7 +139,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
             {/* Skills */}
             {skills && (
               <div>
-                <h2 className="text-xs font-bold tracking-wider uppercase text-indigo-900 mb-2 border-b border-slate-200 pb-1">
+                <h2 className="text-sm font-bold text-slate-900 mb-2 border-b border-slate-200 pb-1">
                   Technical Competencies
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
@@ -174,7 +174,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
             {/* Education */}
             {education && education.length > 0 && (
               <div>
-                <h2 className="text-xs font-bold tracking-wider uppercase text-indigo-900 mb-2 border-b border-slate-200 pb-1">
+                <h2 className="text-sm font-bold text-slate-900 mb-2 border-b border-slate-200 pb-1">
                   Education
                 </h2>
                 <div className="space-y-2">
@@ -186,7 +186,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
                           {edu.degree} in {edu.branch} {edu.cgpa && `• CGPA: ${edu.cgpa}`}
                         </div>
                       </div>
-                      <div className="text-slate-500 font-medium">Graduation: {edu.graduationYear}</div>
+                      <div className="text-xs text-slate-600 font-medium">Graduation: {edu.graduationYear}</div>
                     </div>
                   ))}
                 </div>
@@ -198,7 +198,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                 {certifications && certifications.length > 0 && (
                   <div>
-                    <h3 className="text-xs font-bold uppercase text-indigo-900 mb-1 border-b border-slate-200 pb-0.5">
+                    <h3 className="text-xs font-bold text-slate-900 mb-1 border-b border-slate-200 pb-0.5">
                       Certifications
                     </h3>
                     <ul className="list-disc list-outside ml-4 text-xs text-slate-700 space-y-0.5">
@@ -212,7 +212,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
                 )}
                 {achievements && achievements.length > 0 && (
                   <div>
-                    <h3 className="text-xs font-bold uppercase text-indigo-900 mb-1 border-b border-slate-200 pb-0.5">
+                    <h3 className="text-xs font-bold text-slate-900 mb-1 border-b border-slate-200 pb-0.5">
                       Key Honors
                     </h3>
                     <ul className="list-disc list-outside ml-4 text-xs text-slate-700 space-y-0.5">
@@ -233,7 +233,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
         {templateId === "minimal-ats" && (
           <div className="space-y-5 font-serif text-slate-900">
             <div className="text-center border-b border-slate-800 pb-3">
-              <h1 className="text-2xl font-bold uppercase tracking-wider">{personal.fullName}</h1>
+              <h1 className="text-2xl font-bold">{personal.fullName}</h1>
               <p className="text-xs text-slate-700 mt-1">
                 {[personal.location, personal.phone, personal.email, personal.linkedinUrl]
                   .filter(Boolean)
@@ -243,7 +243,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
 
             {personal.summary && (
               <div>
-                <h2 className="text-xs font-bold uppercase tracking-wider border-b border-slate-400 pb-0.5 mb-1.5">
+                <h2 className="text-sm font-bold border-b border-slate-400 pb-0.5 mb-1.5">
                   Summary
                 </h2>
                 <p className="text-xs leading-relaxed">{personal.summary}</p>
@@ -252,7 +252,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
 
             {experience && experience.length > 0 && (
               <div>
-                <h2 className="text-xs font-bold uppercase tracking-wider border-b border-slate-400 pb-0.5 mb-2">
+                <h2 className="text-sm font-bold border-b border-slate-400 pb-0.5 mb-2">
                   Experience
                 </h2>
                 <div className="space-y-3">
@@ -276,7 +276,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
 
             {education && education.length > 0 && (
               <div>
-                <h2 className="text-xs font-bold uppercase tracking-wider border-b border-slate-400 pb-0.5 mb-1.5">
+                <h2 className="text-sm font-bold border-b border-slate-400 pb-0.5 mb-1.5">
                   Education
                 </h2>
                 {education.map((edu) => (
@@ -293,7 +293,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
 
             {skills && (
               <div>
-                <h2 className="text-xs font-bold uppercase tracking-wider border-b border-slate-400 pb-0.5 mb-1.5">
+                <h2 className="text-sm font-bold border-b border-slate-400 pb-0.5 mb-1.5">
                   Skills
                 </h2>
                 <p className="text-xs leading-relaxed">
@@ -320,7 +320,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
             {/* In Fresher mode, education comes first! */}
             {templateId === "fresher-friendly" && education && education.length > 0 && (
               <div>
-                <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800 border-b border-emerald-200 pb-1 mb-2">
+                <h2 className="text-sm font-bold text-emerald-900 border-b border-emerald-200 pb-1 mb-2">
                   Academic Background (Fresher Priority)
                 </h2>
                 {education.map((edu) => (
@@ -329,7 +329,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
                       <div className="font-bold text-slate-900">{edu.college}</div>
                       <div>{edu.degree} in {edu.branch} • <span className="font-semibold text-emerald-700">CGPA: {edu.cgpa}</span></div>
                     </div>
-                    <span className="font-medium text-slate-500">Class of {edu.graduationYear}</span>
+                    <span className="font-medium text-xs text-slate-600">Class of {edu.graduationYear}</span>
                   </div>
                 ))}
               </div>
@@ -337,7 +337,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
 
             {personal.summary && (
               <div>
-                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-1.5">
+                <h2 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-1 mb-1.5">
                   Executive Profile
                 </h2>
                 <p className="text-xs text-slate-700 leading-relaxed">{personal.summary}</p>
@@ -346,7 +346,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
 
             {projects && projects.length > 0 && (
               <div>
-                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-2">
+                <h2 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-1 mb-2">
                   Projects & Implementations
                 </h2>
                 <div className="space-y-3">
@@ -366,7 +366,7 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
 
             {skills && (
               <div>
-                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-1.5">
+                <h2 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-1 mb-1.5">
                   Core Skills & Tooling
                 </h2>
                 <p className="text-xs text-slate-700">

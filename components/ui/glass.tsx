@@ -55,7 +55,7 @@ export const GlassPanel = React.forwardRef<HTMLDivElement, GlassPanelProps>(
       >
         {(header || actions) && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80">
-            {header && <div className="text-base font-bold text-slate-900 font-heading">{header}</div>}
+            {header && <h2 className="text-base font-bold text-slate-900 font-heading">{header}</h2>}
             {actions && <div className="flex items-center gap-2">{actions}</div>}
           </div>
         )}

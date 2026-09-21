@@ -71,17 +71,17 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 85) return "text-emerald-400 border-emerald-500/40 bg-emerald-500/10";
-    if (score >= 70) return "text-violet-400 border-violet-500/40 bg-violet-500/10";
-    return "text-amber-400 border-amber-500/40 bg-amber-500/10";
+    if (score >= 85) return "text-emerald-600 border-emerald-500/40 bg-emerald-500/10";
+    if (score >= 70) return "text-indigo-600 border-indigo-500/40 bg-indigo-500/10";
+    return "text-amber-600 border-amber-500/40 bg-amber-500/10";
   };
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200/80">
+      <div className="space-y-4 pb-6 border-b border-slate-200/80">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 font-heading flex items-center gap-2">
               <ShieldCheck className="h-7 w-7 text-emerald-600" />
               Corporate ATS Resume Engine
@@ -90,7 +90,7 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
               Universal Grader & Studio
             </GlassBadge>
           </div>
-          <p className="text-xs sm:text-sm text-slate-600">
+          <p className="text-xs sm:text-sm text-slate-600 max-w-2xl">
             Audit your resume against strict corporate ATS algorithms and run AI Tailoring suggestions without needing a disjointed external tracker.
           </p>
         </div>
@@ -98,6 +98,7 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
         {/* View Switcher: ATS Audit vs Tailoring Studio */}
         <div className="inline-flex items-center p-1 rounded-2xl bg-white/80 border border-slate-200 shadow-sm">
           <button
+            type="button"
             onClick={() => setActiveTab("ats-audit")}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${activeTab === "ats-audit" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
               }`}
@@ -105,9 +106,10 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
             Standalone ATS Audit
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("tailoring-studio")}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${activeTab === "tailoring-studio"
-              ? "bg-amber-500 text-slate-950 font-bold shadow-sm"
+              ? "bg-indigo-600 text-white shadow-sm"
               : "text-slate-600 hover:text-slate-900"
               }`}
           >
@@ -131,14 +133,17 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
               className="w-full bg-white border border-slate-200 rounded-xl p-4 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-500 leading-relaxed shadow-sm"
             />
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <span className="text-xs text-slate-600 font-medium">File Label:</span>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-3 pt-2">
+              <div className="flex items-center gap-2">
+                <label htmlFor="ats-file-label" className="text-xs text-slate-700 font-medium shrink-0">
+                  File Label:
+                </label>
                 <GlassInput
+                  id="ats-file-label"
                   type="text"
                   value={resumeName}
                   onChange={(e) => setResumeName(e.target.value)}
-                  className="py-1 px-2.5 text-xs w-56"
+                  className="py-1.5 px-3 text-xs w-full sm:w-64"
                 />
               </div>
 
@@ -150,7 +155,7 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
                 loading={isScanning}
                 className="w-full sm:w-auto"
               >
-                <Zap className="h-4 w-4 text-amber-300 fill-amber-300" />
+                <Zap className="h-4 w-4 fill-current text-white" />
                 <span>{isScanning ? "Auditing Resume..." : "Run ATS Universal Scan"}</span>
               </GlassButton>
             </div>
@@ -195,7 +200,7 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
                         style={{ width: `${currentResult.formattingScore}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-slate-500 block">Header standard, fonts, layout safety</span>
+                    <span className="text-xs text-slate-600 block">Header standard, fonts, layout safety</span>
                   </div>
 
                   {/* Pillar 2: Completeness */}
@@ -210,7 +215,7 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
                         style={{ width: `${currentResult.completenessScore}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-slate-500 block">Contact, LinkedIn, GitHub, length density</span>
+                    <span className="text-xs text-slate-600 block">Contact, LinkedIn, GitHub, length density</span>
                   </div>
 
                   {/* Pillar 3: Keyword Strength */}
@@ -225,7 +230,7 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
                         style={{ width: `${currentResult.keywordStrengthScore}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-slate-500 block">Power verbs density, zero passive phrases</span>
+                    <span className="text-xs text-slate-600 block">Power verbs density, zero passive phrases</span>
                   </div>
 
                   {/* Pillar 4: Quantification */}
@@ -240,52 +245,78 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
                         style={{ width: `${currentResult.quantificationScore}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-slate-500 block">Numbers, latency %, financial, throughput</span>
+                    <span className="text-xs text-slate-600 block">Numbers, latency %, financial, throughput</span>
                   </div>
                 </div>
               </GlassCard>
 
               {/* Actionable Fixes & Strengths Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
                 {/* Strengths */}
-                <GlassCard className="p-6 space-y-3">
-                  <h3 className="text-sm font-bold text-slate-900 font-heading flex items-center gap-2 pb-2 border-b border-slate-100">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <span>Verified Strengths</span>
-                  </h3>
-                  <ul className="space-y-2 text-xs">
-                    {currentResult.strengths.map((str, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-slate-700">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                        <span>{str}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <GlassCard className="p-6 h-full flex flex-col space-y-3">
+                  <div className="min-h-[36px] flex items-center justify-between pb-2 border-b border-slate-100">
+                    <h3 className="text-sm font-bold text-slate-900 font-heading flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span>Verified Strengths</span>
+                    </h3>
+                    <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      {currentResult.strengths?.length || 0} Passed
+                    </span>
+                  </div>
+                  <div className="flex-1 flex flex-col pt-1">
+                    {currentResult.strengths && currentResult.strengths.length > 0 ? (
+                      <ul className="space-y-2 text-xs">
+                        {currentResult.strengths.map((str, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-slate-700">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                            <span>{str}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center p-6 text-center rounded-xl bg-slate-50/80 border border-slate-200/60">
+                        <p className="text-xs text-slate-500 italic">
+                          No specific strengths identified for this scan yet.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </GlassCard>
 
                 {/* Actionable Recommendations */}
-                <GlassCard className="p-6 space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <GlassCard className="p-6 h-full flex flex-col space-y-3">
+                  <div className="min-h-[36px] flex items-center justify-between pb-2 border-b border-slate-100">
                     <h3 className="text-sm font-bold text-slate-900 font-heading flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-amber-600" />
+                      <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
                       <span>Actionable Recommendations</span>
                     </h3>
                     <button
+                      type="button"
                       onClick={() => setActiveTab("tailoring-studio")}
-                      className="text-[11px] text-amber-800 hover:text-amber-900 font-semibold flex items-center gap-1 transition-colors px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 shadow-sm"
+                      className="text-xs text-indigo-700 hover:text-indigo-800 font-semibold flex items-center gap-1 transition-colors px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 shadow-sm"
                     >
-                      <Sparkles className="h-3 w-3 text-amber-600" />
+                      <Sparkles className="h-3 w-3 text-indigo-600" />
                       <span>Fix in Studio →</span>
                     </button>
                   </div>
-                  <ul className="space-y-2 text-xs">
-                    {currentResult.actionableFixes.map((fix, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-slate-700">
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                        <span>{fix}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="flex-1 flex flex-col pt-1">
+                    {currentResult.actionableFixes && currentResult.actionableFixes.length > 0 ? (
+                      <ul className="space-y-2 text-xs">
+                        {currentResult.actionableFixes.map((fix, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-slate-700">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                            <span>{fix}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center p-6 text-center rounded-xl bg-slate-50/80 border border-slate-200/60">
+                        <p className="text-xs text-slate-500 italic">
+                          No critical issues detected. Excellent resume alignment!
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </GlassCard>
               </div>
             </div>
@@ -315,7 +346,7 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
               </div>
               <div className="flex items-end">
                 <GlassButton variant="primary" size="md" className="w-full">
-                  <Sparkles className="h-4 w-4 text-amber-300" />
+                  <Sparkles className="h-4 w-4 text-white" />
                   <span>Synthesize Role Gaps</span>
                 </GlassButton>
               </div>
@@ -333,7 +364,7 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
               <p className="text-xs text-slate-600">High-value terms found in your current Master Profile:</p>
               <div className="flex flex-wrap gap-1.5">
                 {["PostgreSQL", "Next.js", "Redis", "Distributed Systems", "REST/gRPC"].map((t) => (
-                  <GlassBadge key={t} variant="emerald" className="text-[10px]">
+                  <GlassBadge key={t} variant="emerald" className="text-xs">
                     ✓ {t}
                   </GlassBadge>
                 ))}
@@ -349,7 +380,7 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
               <p className="text-xs text-slate-600">High-impact terms that elevate rank for {tailorRole}:</p>
               <div className="flex flex-wrap gap-1.5">
                 {["High Throughput", "Fault Tolerance", "Canary Rollouts", "p99 SLA", "Micro-benchmarking"].map((t) => (
-                  <GlassBadge key={t} variant="amber" className="text-[10px]">
+                  <GlassBadge key={t} variant="amber" className="text-xs">
                     + {t}
                   </GlassBadge>
                 ))}
@@ -384,13 +415,13 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
                     >
                       {tailorApproved[sug.id] && "✓"}
                     </div>
-                    <span className="text-[11px] leading-relaxed">{sug.label}</span>
+                    <span className="text-xs leading-relaxed">{sug.label}</span>
                   </div>
                 ))}
               </div>
 
               <GlassButton
-                variant="gold"
+                variant="primary"
                 size="sm"
                 onClick={() => {
                   setVersionSaved(true);
