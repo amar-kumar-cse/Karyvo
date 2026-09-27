@@ -206,6 +206,31 @@ export class RepositoryStore {
     });
   }
 
+  /**
+   * Centralized database error handler.
+   * Gracefully handles Postgrest errors (like RLS 42501 for unauthenticated demo sessions)
+   * without polluting server console with empty error objects or causing Next.js dev crashes.
+   */
+  private logDbError(operation: string, error: unknown) {
+    if (!error) return;
+    const postgrestErr = error as { code?: string; message?: string; details?: string; hint?: string };
+
+    // RLS Policy notice (code 42501) for unauthenticated guest / demo sessions
+    if (postgrestErr.code === "42501") {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(`[Karyvo DB] ${operation} skipped remote sync (RLS active for anon key). Data preserved in local memory.`);
+      }
+      return;
+    }
+
+    const message =
+      postgrestErr.message ||
+      postgrestErr.details ||
+      postgrestErr.code ||
+      (error instanceof Error ? error.message : JSON.stringify(error));
+    console.error(`[Karyvo DB] ${operation} error:`, message);
+  }
+
   // ==========================================
   // PROFILE (Multi-Tenant)
   // ==========================================
@@ -246,7 +271,7 @@ export class RepositoryStore {
           };
         }
       } catch (err) {
-        console.error("Supabase getProfile error:", err);
+        this.logDbError("getProfile", err);
       }
     }
 
@@ -297,9 +322,9 @@ export class RepositoryStore {
           },
           { onConflict: "user_id" }
         );
-        if (error) console.error("Supabase saveProfile upsert error:", error);
+        if (error) this.logDbError("saveProfile", error);
       } catch (err) {
-        console.error("Supabase saveProfile exception:", err);
+        this.logDbError("saveProfile", err);
       }
     }
 
@@ -333,7 +358,11 @@ export class RepositoryStore {
           }));
         }
 
-        // If no resumes in Supabase for user, seed initial resume from profile
+        // Check if we already have it in memory before re-creating
+        const cachedResumes = Array.from(this.resumes.values()).filter((r) => r.userId === userId);
+        if (cachedResumes.length > 0) return cachedResumes;
+
+        // If no resumes in Supabase or memory for user, seed initial resume from profile
         const profile = await this.getProfile(userId);
         const defaultResume: Resume = {
           id: `res-${userId}-01`,
@@ -367,7 +396,7 @@ export class RepositoryStore {
         await this.saveResume(defaultResume);
         return [defaultResume];
       } catch (err) {
-        console.error("Supabase getResumes error:", err);
+        this.logDbError("getResumes", err);
       }
     }
 
@@ -427,7 +456,7 @@ export class RepositoryStore {
           };
         }
       } catch (err) {
-        console.error("Supabase getResumeById error:", err);
+        this.logDbError("getResumeById", err);
       }
     }
 
@@ -461,9 +490,9 @@ export class RepositoryStore {
           },
           { onConflict: "id" }
         );
-        if (error) console.error("Supabase saveResume error:", error);
+        if (error) this.logDbError("saveResume", error);
       } catch (err) {
-        console.error("Supabase saveResume exception:", err);
+        this.logDbError("saveResume", err);
       }
     }
 
@@ -478,9 +507,10 @@ export class RepositoryStore {
 
     if (this.supabase) {
       try {
-        await this.supabase.from("resumes").delete().eq("id", id).eq("user_id", userId);
+        const { error } = await this.supabase.from("resumes").delete().eq("id", id).eq("user_id", userId);
+        if (error) this.logDbError("deleteResume", error);
       } catch (err) {
-        console.error("Supabase deleteResume error:", err);
+        this.logDbError("deleteResume", err);
       }
     }
 
@@ -515,7 +545,7 @@ export class RepositoryStore {
           }));
         }
       } catch (err) {
-        console.error("Supabase getVersionsByResumeId error:", err);
+        this.logDbError("getVersionsByResumeId", err);
       }
     }
 
@@ -533,7 +563,7 @@ export class RepositoryStore {
 
     if (this.supabase) {
       try {
-        await this.supabase.from("resume_versions").insert({
+        const { error } = await this.supabase.from("resume_versions").insert({
           id: newVersion.id,
           resume_id: newVersion.resumeId,
           user_id: newVersion.userId,
@@ -543,8 +573,9 @@ export class RepositoryStore {
           snapshot: newVersion.snapshot,
           created_at: newVersion.createdAt,
         });
+        if (error) this.logDbError("createVersion", error);
       } catch (err) {
-        console.error("Supabase createVersion error:", err);
+        this.logDbError("createVersion", err);
       }
     }
 
@@ -582,7 +613,7 @@ export class RepositoryStore {
 
     if (this.supabase) {
       try {
-        await this.supabase.from("ats_scans").insert({
+        const { error } = await this.supabase.from("ats_scans").upsert({
           id: finalizedScan.id,
           user_id: userId,
           resume_id: finalizedScan.resumeId,
@@ -597,8 +628,9 @@ export class RepositoryStore {
           actionable_fixes: finalizedScan.actionableFixes,
           scanned_at: finalizedScan.scannedAt,
         });
+        if (error) this.logDbError("saveATSScan", error);
       } catch (err) {
-        console.error("Supabase saveATSScan error:", err);
+        this.logDbError("saveATSScan", err);
       }
     }
 
@@ -632,7 +664,7 @@ export class RepositoryStore {
           }));
         }
       } catch (err) {
-        console.error("Supabase getATSScans error:", err);
+        this.logDbError("getATSScans", err);
       }
     }
 
@@ -645,9 +677,10 @@ export class RepositoryStore {
     const scan = this.atsScans.get(id);
     if (this.supabase) {
       try {
-        await this.supabase.from("ats_scans").delete().eq("id", id).eq("user_id", userId);
+        const { error } = await this.supabase.from("ats_scans").delete().eq("id", id).eq("user_id", userId);
+        if (error) this.logDbError("deleteATSScan", error);
       } catch (err) {
-        console.error("Supabase deleteATSScan error:", err);
+        this.logDbError("deleteATSScan", err);
       }
     }
 
@@ -664,7 +697,7 @@ export class RepositoryStore {
   async saveCoverLetter(letter: CoverLetter): Promise<CoverLetter> {
     if (this.supabase) {
       try {
-        await this.supabase.from("cover_letters").upsert({
+        const { error } = await this.supabase.from("cover_letters").upsert({
           id: letter.id,
           user_id: letter.userId,
           resume_id: letter.resumeId,
@@ -675,8 +708,9 @@ export class RepositoryStore {
           created_at: letter.createdAt,
           updated_at: letter.updatedAt,
         });
+        if (error) this.logDbError("saveCoverLetter", error);
       } catch (err) {
-        console.error("Supabase saveCoverLetter error:", err);
+        this.logDbError("saveCoverLetter", err);
       }
     }
 
@@ -706,7 +740,7 @@ export class RepositoryStore {
           }));
         }
       } catch (err) {
-        console.error("Supabase getCoverLetters error:", err);
+        this.logDbError("getCoverLetters", err);
       }
     }
 
@@ -719,9 +753,10 @@ export class RepositoryStore {
     const letter = this.coverLetters.get(id);
     if (this.supabase) {
       try {
-        await this.supabase.from("cover_letters").delete().eq("id", id).eq("user_id", userId);
+        const { error } = await this.supabase.from("cover_letters").delete().eq("id", id).eq("user_id", userId);
+        if (error) this.logDbError("deleteCoverLetter", error);
       } catch (err) {
-        console.error("Supabase deleteCoverLetter error:", err);
+        this.logDbError("deleteCoverLetter", err);
       }
     }
 
@@ -740,7 +775,7 @@ export class RepositoryStore {
 
     if (this.supabase) {
       try {
-        await this.supabase.from("interview_sessions").upsert({
+        const { error } = await this.supabase.from("interview_sessions").upsert({
           id: cloned.id,
           user_id: cloned.userId,
           target_role: cloned.targetRole,
@@ -750,8 +785,9 @@ export class RepositoryStore {
           created_at: cloned.createdAt,
           updated_at: cloned.updatedAt,
         });
+        if (error) this.logDbError("saveInterviewSession", error);
       } catch (err) {
-        console.error("Supabase saveInterviewSession error:", err);
+        this.logDbError("saveInterviewSession", err);
       }
     }
 
@@ -780,7 +816,7 @@ export class RepositoryStore {
           }));
         }
       } catch (err) {
-        console.error("Supabase getInterviewSessions error:", err);
+        this.logDbError("getInterviewSessions", err);
       }
     }
 
@@ -811,7 +847,7 @@ export class RepositoryStore {
           };
         }
       } catch (err) {
-        console.error("Supabase getInterviewSessionById error:", err);
+        this.logDbError("getInterviewSessionById", err);
       }
     }
 
@@ -824,9 +860,10 @@ export class RepositoryStore {
     const session = this.interviewSessions.get(id);
     if (this.supabase) {
       try {
-        await this.supabase.from("interview_sessions").delete().eq("id", id).eq("user_id", userId);
+        const { error } = await this.supabase.from("interview_sessions").delete().eq("id", id).eq("user_id", userId);
+        if (error) this.logDbError("deleteInterviewSession", error);
       } catch (err) {
-        console.error("Supabase deleteInterviewSession error:", err);
+        this.logDbError("deleteInterviewSession", err);
       }
     }
 
@@ -863,7 +900,7 @@ export class RepositoryStore {
           };
         }
       } catch (err) {
-        console.error("Supabase getSubscription error:", err);
+        this.logDbError("getSubscription", err);
       }
     }
 
@@ -910,7 +947,7 @@ export class RepositoryStore {
 
     if (this.supabase) {
       try {
-        await this.supabase.from("subscriptions").upsert(
+        const { error } = await this.supabase.from("subscriptions").upsert(
           {
             id: updated.id,
             user_id: userId,
@@ -924,8 +961,9 @@ export class RepositoryStore {
           },
           { onConflict: "user_id" }
         );
+        if (error) this.logDbError("upgradeToPro", error);
       } catch (err) {
-        console.error("Supabase upgradeToPro error:", err);
+        this.logDbError("upgradeToPro", err);
       }
     }
 
@@ -947,14 +985,15 @@ export class RepositoryStore {
 
     if (this.supabase) {
       try {
-        await this.supabase.from("subscriptions").update({
+        const { error } = await this.supabase.from("subscriptions").update({
           plan: "free",
           status: "canceled",
           current_period_end: null,
           updated_at: now,
         }).eq("user_id", userId);
+        if (error) this.logDbError("cancelSubscription", error);
       } catch (err) {
-        console.error("Supabase cancelSubscription error:", err);
+        this.logDbError("cancelSubscription", err);
       }
     }
 

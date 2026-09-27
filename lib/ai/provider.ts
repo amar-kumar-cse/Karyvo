@@ -61,17 +61,22 @@ Original bullet: "${trimmed}"
 Role context: "${roleOrContext || "Software Engineer"}"`;
 
         // M7: Use x-goog-api-key header instead of query param to avoid key in URL/logs
-        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent", {
+        // AbortController with 15s timeout — AI calls must never hang indefinitely
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15_000);
+        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-goog-api-key": process.env.GEMINI_API_KEY,
+            "x-goog-api-key": process.env.GEMINI_API_KEY!,
           },
+          signal: controller.signal,
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: { responseMimeType: "application/json" }
           })
         });
+        clearTimeout(timeoutId);
         const data = await res.json();
         const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (jsonText) {

@@ -74,6 +74,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
   const [mobileTab, setMobileTab] = useState<"edit" | "preview">("edit");
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [improvingIndex, setImprovingIndex] = useState<string | null>(null);
   const [versions, setVersions] = useState<ResumeVersion[]>(initialVersions);
   const [showVersionModal, setShowVersionModal] = useState(false);
@@ -195,6 +196,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
   const handleSaveResume = async () => {
     setIsSaving(true);
     setSaveSuccess(false);
+    setSaveError(null);
     try {
       const res = await fetch("/api/resume", {
         method: "POST",
@@ -222,9 +224,14 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
           setCreateVersionOnSave(false);
           setNewVersionLabel("");
         }
+      } else {
+        setSaveError(data.error || "Save failed. Please try again.");
+        setTimeout(() => setSaveError(null), 5000);
       }
     } catch (err) {
       console.error("Save failed:", err);
+      setSaveError("Network error — please check your connection and try again.");
+      setTimeout(() => setSaveError(null), 5000);
     } finally {
       setIsSaving(false);
     }
@@ -337,6 +344,13 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
             </div>
           </div>
         </div>
+        {/* Save error banner — auto-dismisses after 5s */}
+        {saveError && (
+          <div className="mt-2 px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-xs font-medium text-red-700 flex items-center gap-2">
+            <span>⚠</span>
+            <span>{saveError}</span>
+          </div>
+        )}
       </GlassPanel>
 
       {/* Mobile Tab Switcher (Edit vs Preview) */}
