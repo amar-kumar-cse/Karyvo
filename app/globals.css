@@ -143,32 +143,38 @@ body {
 
 /* Print CSS for High-Fidelity Resume Export */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+
   body {
     background: #ffffff !important;
+    background-image: none !important;
     color: #000000 !important;
   }
 
+  header,
+  footer,
+  nav,
   .no-print {
     display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   .paper-lit-sheet {
     box-shadow: none !important;
     border-radius: 0 !important;
+    border: none !important;
     margin: 0 !important;
     padding: 0 !important;
     max-width: 100% !important;
+    width: 100% !important;
   }
-}
-
-.no-print {
-  display: none !important;
-}
-
-.paper-lit-sheet {
-  box-shadow: none !important;
-  border-radius: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  max-width: 100% !important;
-}
+}

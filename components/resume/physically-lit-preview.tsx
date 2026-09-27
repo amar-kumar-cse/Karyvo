@@ -14,12 +14,12 @@ export function PhysicallyLitResumePreview({ content, templateId = "modern-tech"
   return (
     <div className="relative w-full flex justify-center py-6 px-2 overflow-auto select-text">
       {/* Soft warm ambient lighting behind the floating sheet */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[800px] h-[90%] bg-gradient-to-tr from-violet-600/10 via-indigo-500/5 to-amber-500/10 rounded-xl blur-3xl -z-10 pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[800px] h-[90%] bg-gradient-to-tr from-violet-600/10 via-indigo-500/5 to-amber-500/10 rounded-xl blur-3xl -z-10 pointer-events-none no-print" />
 
       {/* Physically-Lit Paper Sheet (A4 Proportion standard 800px width) */}
       <div className="paper-lit-sheet w-full max-w-[820px] min-h-[1050px] p-8 sm:p-12 text-slate-900 transition-all font-sans leading-relaxed text-sm">
         {/* Subtle physical paper top-edge bevel highlight */}
-        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/80 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/80 to-transparent pointer-events-none no-print" />
 
         {/* ============================================================ */}
         {/* TEMPLATE 1: MODERN TECH */}

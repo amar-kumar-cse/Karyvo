@@ -72,7 +72,7 @@ export function CoverLetterWorkspace({ initialLetters }: Props) {
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200 no-print">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 font-heading">
@@ -91,7 +91,7 @@ export function CoverLetterWorkspace({ initialLetters }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Form: Inputs */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="lg:col-span-5 space-y-6 no-print">
           <GlassPanel header="Target Opportunity">
             <div>
               <label className="text-xs text-slate-700 font-medium block mb-1 flex items-center gap-1.5">
@@ -188,7 +188,7 @@ export function CoverLetterWorkspace({ initialLetters }: Props) {
                   <h2 className="text-base font-bold text-slate-900 font-heading">{currentLetter.companyName}</h2>
                   <span className="text-xs text-indigo-600 font-medium">{currentLetter.targetRole}</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex flex-wrap items-center gap-2.5 no-print">
                   <GlassButton
                     variant="secondary"
                     size="md"

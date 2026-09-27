@@ -25,10 +25,15 @@ export function Navbar() {
   const [toolsOpen, setToolsOpen] = useState(false);
 
   useEffect(() => {
-    fetch("/api/payments/create-order")
-      .then(() => {
-        const storedPro = localStorage.getItem("karyvo_pro_active");
-        if (storedPro === "true") setIsPro(true);
+    fetch("/api/payments/subscription")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.data?.tier === "pro" && data?.data?.status === "active") {
+          setIsPro(true);
+        } else {
+          const storedPro = localStorage.getItem("karyvo_pro_active");
+          if (storedPro === "true") setIsPro(true);
+        }
       })
       .catch(() => { });
   }, []);

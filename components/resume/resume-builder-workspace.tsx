@@ -32,14 +32,44 @@ import {
 } from "lucide-react";
 
 interface Props {
-  initialResume: Resume;
+  initialResume?: Resume;
   profile: MasterCareerProfile;
   versions: ResumeVersion[];
 }
 
 export function ResumeBuilderWorkspace({ initialResume, profile, versions: initialVersions }: Props) {
-  const [resume, setResume] = useState<Resume>(initialResume);
-  const [content, setContent] = useState<ResumeContent>(initialResume.content);
+  const defaultResume: Resume = {
+    id: `res-${profile?.userId || "user-default"}-01`,
+    userId: profile?.userId || "user-default",
+    title: `${profile?.fullName || "Technical"} Resume (2025 Standard)`,
+    targetRole: profile?.experience?.[0]?.role || "Software Development Engineer",
+    templateId: "modern-tech",
+    isPrimary: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    content: {
+      personal: {
+        fullName: profile?.fullName || "",
+        email: profile?.email || "",
+        phone: profile?.phone || "",
+        location: profile?.location || "",
+        linkedinUrl: profile?.linkedinUrl || "",
+        githubUrl: profile?.githubUrl || "",
+        portfolioUrl: profile?.portfolioUrl || "",
+        summary: profile?.summary || "",
+      },
+      education: profile?.education || [],
+      experience: profile?.experience || [],
+      projects: profile?.projects || [],
+      skills: profile?.skills || { technical: [], frameworks: [], tools: [], soft: [] },
+      certifications: profile?.certifications || [],
+      achievements: profile?.achievements || [],
+    },
+  };
+
+  const safeInitialResume = initialResume || defaultResume;
+  const [resume, setResume] = useState<Resume>(safeInitialResume);
+  const [content, setContent] = useState<ResumeContent>(safeInitialResume.content);
   const [step, setStep] = useState<number>(1);
   const [mobileTab, setMobileTab] = useState<"edit" | "preview">("edit");
   const [isSaving, setIsSaving] = useState(false);
@@ -221,7 +251,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
   return (
     <div className="mx-auto max-w-[1600px] px-3 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Top Floating Glass Header Bar */}
-      <GlassPanel className="p-4 sm:p-5">
+      <GlassPanel className="p-4 sm:p-5 no-print">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -310,7 +340,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
       </GlassPanel>
 
       {/* Mobile Tab Switcher (Edit vs Preview) */}
-      <div className="flex md:hidden items-center justify-center p-1 rounded-2xl glass-surface border border-slate-200 bg-white/60">
+      <div className="flex md:hidden items-center justify-center p-1 rounded-2xl glass-surface border border-slate-200 bg-white/60 no-print">
         <button
           type="button"
           onClick={() => setMobileTab("edit")}
@@ -360,7 +390,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
         {/* LEFT COLUMN: 7-STEP EDITOR IN GLASS CARDS */}
         {/* ========================================================= */}
         <div
-          className={`lg:col-span-6 space-y-6 ${mobileTab === "preview" ? "hidden lg:block" : "block"
+          className={`lg:col-span-6 space-y-6 no-print ${mobileTab === "preview" ? "hidden lg:block" : "block"
             }`}
         >
           {/* STEP 1: PERSONAL */}
@@ -1011,7 +1041,7 @@ export function ResumeBuilderWorkspace({ initialResume, profile, versions: initi
         className={`lg:col-span-6 sticky top-24 ${mobileTab === "edit" ? "hidden lg:block" : "block"
           }`}
       >
-        <div className="flex justify-between items-center px-4 py-2 mb-2 rounded-xl glass-surface border border-slate-200 text-xs text-slate-600">
+        <div className="flex justify-between items-center px-4 py-2 mb-2 rounded-xl glass-surface border border-slate-200 text-xs text-slate-600 no-print">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>Real-time Tactile Document Rendering</span>

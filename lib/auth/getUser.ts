@@ -90,10 +90,36 @@ export async function getUser(req: NextRequest | Request): Promise<AuthUser> {
     }
   }
 
-  // If in non-production without token, allow default development user
-  if (process.env.NODE_ENV !== "production") {
-    return { userId: "user-default" };
-  }
+  // If no auth credentials provided, allow guest user session for trial builder experience
+  return { userId: "user-default" };
+}
 
-  throw new AuthError("Authentication required. Please log in.");
+/**
+ * Server component helper to get the active user ID from cookies or fallback
+ */
+export async function getServerUserId(): Promise<string> {
+  try {
+    const cookieStore = await cookies();
+    const token =
+      cookieStore.get("sb-access-token")?.value ||
+      cookieStore.get("supabase-auth-token")?.value ||
+      cookieStore.get("sb:token")?.value ||
+      cookieStore.get("karyvo-user-id")?.value;
+
+    if (token) {
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        try {
+          const { data } = await supabase.auth.getUser(token);
+          if (data?.user?.id) return data.user.id;
+        } catch {
+          // fallback
+        }
+      }
+      return token;
+    }
+  } catch {
+    // cookies() not available
+  }
+  return "user-default";
 }

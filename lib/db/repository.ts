@@ -319,7 +319,7 @@ export class RepositoryStore {
           .eq("user_id", userId)
           .order("updated_at", { ascending: false });
 
-        if (data && !error) {
+        if (data && !error && data.length > 0) {
           return data.map((r) => ({
             id: r.id,
             userId: r.user_id,
@@ -332,12 +332,79 @@ export class RepositoryStore {
             updatedAt: r.updated_at,
           }));
         }
+
+        // If no resumes in Supabase for user, seed initial resume from profile
+        const profile = await this.getProfile(userId);
+        const defaultResume: Resume = {
+          id: `res-${userId}-01`,
+          userId,
+          title: `${profile.fullName || "Engineer"} Resume (Standard)`,
+          targetRole: profile.experience?.[0]?.role || "Software Engineer",
+          templateId: "modern-tech",
+          isPrimary: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          content: {
+            personal: {
+              fullName: profile.fullName || "",
+              email: profile.email || "",
+              phone: profile.phone || "",
+              location: profile.location || "",
+              linkedinUrl: profile.linkedinUrl || "",
+              githubUrl: profile.githubUrl || "",
+              portfolioUrl: profile.portfolioUrl || "",
+              summary: profile.summary || "",
+            },
+            education: profile.education || [],
+            experience: profile.experience || [],
+            projects: profile.projects || [],
+            skills: profile.skills || { technical: [], frameworks: [], tools: [], soft: [] },
+            certifications: profile.certifications || [],
+            achievements: profile.achievements || [],
+          },
+        };
+
+        await this.saveResume(defaultResume);
+        return [defaultResume];
       } catch (err) {
         console.error("Supabase getResumes error:", err);
       }
     }
 
-    return Array.from(this.resumes.values()).filter((r) => r.userId === userId);
+    const memoryResumes = Array.from(this.resumes.values()).filter((r) => r.userId === userId);
+    if (memoryResumes.length > 0) return memoryResumes;
+
+    const profile = await this.getProfile(userId);
+    const defaultResume: Resume = {
+      id: `res-${userId}-01`,
+      userId,
+      title: `${profile.fullName || "Engineer"} Resume (Standard)`,
+      targetRole: profile.experience?.[0]?.role || "Software Engineer",
+      templateId: "modern-tech",
+      isPrimary: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      content: {
+        personal: {
+          fullName: profile.fullName || "",
+          email: profile.email || "",
+          phone: profile.phone || "",
+          location: profile.location || "",
+          linkedinUrl: profile.linkedinUrl || "",
+          githubUrl: profile.githubUrl || "",
+          portfolioUrl: profile.portfolioUrl || "",
+          summary: profile.summary || "",
+        },
+        education: profile.education || [],
+        experience: profile.experience || [],
+        projects: profile.projects || [],
+        skills: profile.skills || { technical: [], frameworks: [], tools: [], soft: [] },
+        certifications: profile.certifications || [],
+        achievements: profile.achievements || [],
+      },
+    };
+    this.resumes.set(defaultResume.id, defaultResume);
+    return [defaultResume];
   }
 
   async getResumeById(id: string, userId?: string): Promise<Resume | undefined> {

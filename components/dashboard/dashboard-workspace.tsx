@@ -37,16 +37,39 @@ export function DashboardWorkspace({
   atsScans,
   interviews,
 }: Props) {
-  const primaryResume = resumes[0];
+  const primaryResume = resumes[0] || {
+    id: "res-new",
+    userId: profile?.userId || "user-default",
+    title: `${profile?.fullName || "Technical"} Resume (Standard)`,
+    targetRole: profile?.experience?.[0]?.role || "Software Development Engineer",
+    templateId: "modern-tech",
+    isPrimary: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    content: {
+      personal: {
+        fullName: profile?.fullName || "Your Full Name",
+        summary: profile?.summary || "Complete professional summary configured.",
+      },
+      education: profile?.education || [],
+      experience: profile?.experience || [],
+      projects: profile?.projects || [],
+      skills: profile?.skills || { technical: [], frameworks: [], tools: [], soft: [] },
+      certifications: profile?.certifications || [],
+      achievements: profile?.achievements || [],
+    },
+  };
   const latestScan = atsScans[0];
   const latestInterview = interviews[0];
 
   // Calculate profile completeness %
   let profileScore = 40;
-  if (profile.education.length > 0) profileScore += 15;
-  if (profile.experience.length > 0) profileScore += 15;
-  if (profile.projects.length > 0) profileScore += 15;
-  if (profile.skills.technical.length > 0) profileScore += 15;
+  if (profile?.education?.length) profileScore += 15;
+  if (profile?.experience?.length) profileScore += 15;
+  if (profile?.projects?.length) profileScore += 15;
+  if (profile?.skills?.technical?.length) profileScore += 15;
+
+  const displayName = profile?.fullName ? profile.fullName.split(" ")[0] : "Professional";
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -56,7 +79,7 @@ export function DashboardWorkspace({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200/80">
         <div className="space-y-1">
           <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900 font-heading flex items-center gap-2">
-            Welcome back, {profile.fullName.split(" ")[0]}
+            Welcome back, {displayName}
             <Sparkles className="h-6 w-6 text-amber-500" aria-hidden="true" />
           </h1>
           <p className="text-xs sm:text-sm text-slate-600">

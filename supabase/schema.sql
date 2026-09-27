@@ -134,24 +134,32 @@ ALTER TABLE public.interview_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ats_scans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 
--- 9. Basic RLS Policies (Allow access to service role and authenticated users for their own rows)
+-- 9. Basic RLS Policies (Allow access to service role, authenticated users, and anon trial sessions)
+DROP POLICY IF EXISTS "Users can manage own profile" ON public.profiles;
 CREATE POLICY "Users can manage own profile" ON public.profiles
-    FOR ALL USING (auth.uid()::text = user_id OR auth.role() = 'service_role');
+    FOR ALL USING (auth.uid()::text = user_id OR auth.role() = 'service_role' OR auth.role() = 'anon');
 
+DROP POLICY IF EXISTS "Users can manage own resumes" ON public.resumes;
 CREATE POLICY "Users can manage own resumes" ON public.resumes
-    FOR ALL USING (auth.uid()::text = user_id OR auth.role() = 'service_role');
+    FOR ALL USING (auth.uid()::text = user_id OR auth.role() = 'service_role' OR auth.role() = 'anon');
 
+DROP POLICY IF EXISTS "Users can manage own resume versions" ON public.resume_versions;
 CREATE POLICY "Users can manage own resume versions" ON public.resume_versions
-    FOR ALL USING (auth.uid()::text = user_id OR auth.role() = 'service_role');
+    FOR ALL USING (auth.uid()::text = user_id OR auth.role() = 'service_role' OR auth.role() = 'anon');
 
+DROP POLICY IF EXISTS "Users can manage own cover letters" ON public.cover_letters;
 CREATE POLICY "Users can manage own cover letters" ON public.cover_letters
-    FOR ALL USING (auth.uid()::text = user_id OR auth.role() = 'service_role');
+    FOR ALL USING (auth.uid()::text = user_id OR auth.role() = 'service_role' OR auth.role() = 'anon');
 
+DROP POLICY IF EXISTS "Users can manage own interview sessions" ON public.interview_sessions;
 CREATE POLICY "Users can manage own interview sessions" ON public.interview_sessions
-    FOR ALL USING (auth.uid()::text = user_id OR auth.role() = 'service_role');
+    FOR ALL USING (auth.uid()::text = user_id OR auth.role() = 'service_role' OR auth.role() = 'anon');
 
+DROP POLICY IF EXISTS "Users can manage own ATS scans" ON public.ats_scans;
 CREATE POLICY "Users can manage own ATS scans" ON public.ats_scans
-    FOR ALL USING (auth.uid()::text = user_id OR auth.role() = 'service_role');
+    FOR ALL USING (auth.uid()::text = user_id OR auth.role() = 'service_role' OR auth.role() = 'anon');
 
+DROP POLICY IF EXISTS "Users can manage own subscription" ON public.subscriptions;
 CREATE POLICY "Users can manage own subscription" ON public.subscriptions
-    FOR ALL USING (auth.uid()::text = user_id OR auth.role() = 'service_role');
+    FOR ALL USING (auth.uid()::text = user_id OR auth.role() = 'service_role' OR auth.role() = 'anon');
+

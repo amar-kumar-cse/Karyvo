@@ -1,11 +1,12 @@
 import { repository } from "@/lib/db/repository";
+import { getServerUserId } from "@/lib/auth/getUser";
 import { ATSScannerWorkspace } from "@/components/ats/ats-scanner-workspace";
 import { atsScanner } from "@/lib/ats/scanner";
 
 export const dynamic = "force-dynamic";
 
 export default async function ATSPage() {
-  const userId = "user-default";
+  const userId = await getServerUserId();
   let scans = await repository.getATSScans(userId);
   const resumes = await repository.getResumes(userId);
   const primaryResume = resumes[0];

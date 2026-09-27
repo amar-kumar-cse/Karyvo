@@ -1,10 +1,11 @@
 import { repository } from "@/lib/db/repository";
+import { getServerUserId } from "@/lib/auth/getUser";
 import { DashboardWorkspace } from "@/components/dashboard/dashboard-workspace";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const userId = "user-default";
+  const userId = await getServerUserId();
   const profile = await repository.getProfile(userId);
   const resumes = await repository.getResumes(userId);
   const versions = resumes[0] ? await repository.getVersionsByResumeId(resumes[0].id, userId) : [];
