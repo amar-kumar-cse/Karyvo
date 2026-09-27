@@ -61,7 +61,7 @@ Original bullet: "${trimmed}"
 Role context: "${roleOrContext || "Software Engineer"}"`;
 
         // M7: Use x-goog-api-key header instead of query param to avoid key in URL/logs
-        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent", {
+        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
