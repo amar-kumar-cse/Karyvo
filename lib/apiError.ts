@@ -10,8 +10,6 @@ import { AuthError } from "@/lib/auth/getUser";
  *  - Unknown → 500 with generic message
  */
 export function handleApiError(error: unknown, context: string) {
-  console.error(`${context}:`, error);
-
   if (error instanceof ZodError) {
     const fieldErrors = error.errors.map((e) => ({
       field: e.path.join("."),
@@ -22,6 +20,8 @@ export function handleApiError(error: unknown, context: string) {
       { status: 400 }
     );
   }
+
+  console.error(`${context}:`, error instanceof Error ? error.message : error);
 
   if (error instanceof AuthError) {
     return NextResponse.json(
