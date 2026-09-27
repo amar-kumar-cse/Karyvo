@@ -5,6 +5,9 @@ export interface Subscription {
   userId: string;
   plan: PlanTier;
   status: "active" | "canceled" | "past_due";
+  billingCycle?: "monthly" | "yearly";
+  paymentId?: string;
+  orderId?: string;
   currentPeriodEnd?: string;
   createdAt: string;
   updatedAt: string;

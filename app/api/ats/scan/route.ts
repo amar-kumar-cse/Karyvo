@@ -9,7 +9,7 @@ import { rateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 export async function GET(req: NextRequest) {
   try {
     const { userId } = await getUser(req);
-    const scans = repository.getATSScans();
+    const scans = await repository.getATSScans(userId);
     return NextResponse.json({ success: true, data: scans });
   } catch (error) {
     return handleApiError(error, "GET /api/ats/scan");
@@ -30,9 +30,9 @@ export async function POST(req: NextRequest) {
 
     const result = atsScanner.analyzeResume(validated.resumeText, validated.resumeName, validated.resumeId);
 
-    repository.saveATSScan(result);
+    const saved = await repository.saveATSScan(result, userId);
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true, data: saved });
   } catch (error) {
     return handleApiError(error, "POST /api/ats/scan");
   }
@@ -49,9 +49,9 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Scan ID is required." }, { status: 400 });
     }
 
-    const deleted = repository.deleteATSScan(id);
+    const deleted = await repository.deleteATSScan(id, userId);
     if (!deleted) {
-      return NextResponse.json({ success: false, error: "ATS scan not found." }, { status: 404 });
+      return NextResponse.json({ success: false, error: "ATS scan not found or unauthorized." }, { status: 404 });
     }
 
     return NextResponse.json({ success: true, message: "ATS scan deleted." });

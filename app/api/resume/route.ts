@@ -14,14 +14,14 @@ export async function GET(req: NextRequest) {
     const id = searchParams.get("id");
 
     if (id) {
-      const resume = repository.getResumeById(id);
+      const resume = await repository.getResumeById(id, userId);
       if (!resume) {
         return NextResponse.json({ success: false, error: "Resume not found" }, { status: 404 });
       }
       return NextResponse.json({ success: true, data: resume });
     }
 
-    const resumes = repository.getResumes();
+    const resumes = await repository.getResumes(userId);
     return NextResponse.json({ success: true, data: resumes });
   } catch (error) {
     return handleApiError(error, "GET /api/resume");
@@ -42,11 +42,11 @@ export async function POST(req: NextRequest) {
 
     // M4: Use crypto.randomUUID() instead of Date.now()
     const resumeId = validated.id || `res-${crypto.randomUUID()}`;
-    const existing = repository.getResumeById(resumeId);
+    const existing = await repository.getResumeById(resumeId, userId);
 
     const resumeToSave: Resume = {
       id: resumeId,
-      userId: existing?.userId || userId,
+      userId,
       title: validated.title,
       targetRole: validated.targetRole,
       templateId: validated.templateId,
@@ -56,15 +56,15 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
 
-    const saved = repository.saveResume(resumeToSave);
+    const saved = await repository.saveResume(resumeToSave);
 
     // If requested, create a labeled version snapshot
     if (validated.createVersion) {
-      const existingVersions = repository.getVersionsByResumeId(resumeId);
+      const existingVersions = await repository.getVersionsByResumeId(resumeId, userId);
       const nextVersionNum = existingVersions.length + 1;
       const label = validated.versionLabel?.trim() || `Version ${nextVersionNum}`;
 
-      repository.createVersion({
+      await repository.createVersion({
         resumeId: saved.id,
         userId: saved.userId,
         versionNumber: nextVersionNum,
@@ -91,9 +91,9 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Resume ID is required." }, { status: 400 });
     }
 
-    const deleted = repository.deleteResume(id);
+    const deleted = await repository.deleteResume(id, userId);
     if (!deleted) {
-      return NextResponse.json({ success: false, error: "Resume not found." }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Resume not found or unauthorized." }, { status: 404 });
     }
 
     return NextResponse.json({ success: true, message: "Resume deleted." });

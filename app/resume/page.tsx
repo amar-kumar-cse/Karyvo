@@ -4,10 +4,11 @@ import { ResumeBuilderWorkspace } from "@/components/resume/resume-builder-works
 export const dynamic = "force-dynamic";
 
 export default async function ResumePage() {
-  const profile = repository.getProfile();
-  const resumes = repository.getResumes();
+  const userId = "user-default";
+  const profile = await repository.getProfile(userId);
+  const resumes = await repository.getResumes(userId);
   const primaryResume = resumes[0];
-  const versions = primaryResume ? repository.getVersionsByResumeId(primaryResume.id) : [];
+  const versions = primaryResume ? await repository.getVersionsByResumeId(primaryResume.id, userId) : [];
 
   return (
     <ResumeBuilderWorkspace

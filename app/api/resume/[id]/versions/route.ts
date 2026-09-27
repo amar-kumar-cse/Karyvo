@@ -12,12 +12,12 @@ export async function GET(
     const { userId } = await getUser(req);
     const { id } = await params;
 
-    const resume = repository.getResumeById(id);
+    const resume = await repository.getResumeById(id, userId);
     if (!resume) {
-      return NextResponse.json({ success: false, error: "Resume not found." }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Resume not found or unauthorized." }, { status: 404 });
     }
 
-    const versions = repository.getVersionsByResumeId(id);
+    const versions = await repository.getVersionsByResumeId(id, userId);
     return NextResponse.json({ success: true, data: versions });
   } catch (error) {
     return handleApiError(error, "GET /api/resume/[id]/versions");
@@ -37,6 +37,11 @@ export async function POST(
       return NextResponse.json({ success: false, error: "Too many requests. Please wait." }, { status: 429 });
     }
 
+    const resume = await repository.getResumeById(id, userId);
+    if (!resume) {
+      return NextResponse.json({ success: false, error: "Resume not found or unauthorized." }, { status: 404 });
+    }
+
     const body = await req.json();
     const { versionId } = body;
 
@@ -44,8 +49,8 @@ export async function POST(
       return NextResponse.json({ success: false, error: "Version ID is required." }, { status: 400 });
     }
 
-    // M6: Validate versionId belongs specifically to this resume (id)
-    const restoredResume = repository.restoreVersion(versionId, id);
+    // M6: Validate versionId belongs specifically to this resume (id) and user (userId)
+    const restoredResume = await repository.restoreVersion(versionId, id, userId);
     if (!restoredResume) {
       return NextResponse.json({
         success: false,

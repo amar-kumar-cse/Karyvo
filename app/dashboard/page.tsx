@@ -4,11 +4,12 @@ import { DashboardWorkspace } from "@/components/dashboard/dashboard-workspace";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const profile = repository.getProfile();
-  const resumes = repository.getResumes();
-  const versions = resumes[0] ? repository.getVersionsByResumeId(resumes[0].id) : [];
-  const atsScans = repository.getATSScans();
-  const interviews = repository.getInterviewSessions();
+  const userId = "user-default";
+  const profile = await repository.getProfile(userId);
+  const resumes = await repository.getResumes(userId);
+  const versions = resumes[0] ? await repository.getVersionsByResumeId(resumes[0].id, userId) : [];
+  const atsScans = await repository.getATSScans(userId);
+  const interviews = await repository.getInterviewSessions(userId);
 
   return (
     <DashboardWorkspace

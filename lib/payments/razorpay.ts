@@ -1,35 +1,72 @@
 import crypto from "crypto";
-import { RazorpayVerificationPayload } from "@/types/payment";
+import Razorpay from "razorpay";
+import { RazorpayVerificationPayload, PaymentOrder } from "@/types/payment";
 
 export class PaymentService {
   private keyId: string;
   private keySecret: string;
+  private razorpayClient: Razorpay | null = null;
 
   constructor() {
-    this.keyId = process.env.RAZORPAY_KEY_ID || "rzp_test_karyvo_mock";
+    this.keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_karyvo_mock";
     this.keySecret = process.env.RAZORPAY_KEY_SECRET || "mock_secret_karyvo";
+
+    // Initialize official Razorpay instance if valid keys exist
+    if (this.keyId && this.keySecret && this.keyId !== "rzp_test_karyvo_mock" && this.keySecret !== "mock_secret_karyvo") {
+      try {
+        this.razorpayClient = new Razorpay({
+          key_id: this.keyId,
+          key_secret: this.keySecret,
+        });
+      } catch (err) {
+        console.error("Failed to initialize Razorpay SDK client:", err);
+      }
+    }
   }
 
   /**
-   * Generates a secure Razorpay order for Pro subscription
+   * H2: Generates an official Razorpay order for Pro subscription
    */
-  async createProOrder(userId: string, billingCycle: "monthly" | "yearly" = "monthly"): Promise<{
-    orderId: string;
-    amount: number;
-    currency: string;
-    keyId: string;
-  }> {
+  async createProOrder(
+    userId: string,
+    billingCycle: "monthly" | "yearly" = "monthly"
+  ): Promise<PaymentOrder> {
     // In INR: Monthly is ₹499 (49900 paise), Yearly is ₹2999 (299900 paise)
     const amount = billingCycle === "monthly" ? 49900 : 299900;
-    // M4: Use crypto.randomUUID() instead of Date.now() for collision-free IDs
-    const orderId = `order_${crypto.randomUUID()}`;
+    const receipt = `rcpt_${crypto.randomUUID().slice(0, 18)}`;
 
-    // TODO: Replace with real Razorpay SDK call:
-    // const razorpay = new Razorpay({ key_id: this.keyId, key_secret: this.keySecret });
-    // const order = await razorpay.orders.create({ amount, currency: "INR", receipt: orderId });
+    // Call official Razorpay Orders API if configured
+    if (this.razorpayClient) {
+      try {
+        const order = await this.razorpayClient.orders.create({
+          amount,
+          currency: "INR",
+          receipt,
+          notes: {
+            userId,
+            billingCycle,
+            tier: "pro",
+          },
+        });
 
+        return {
+          orderId: order.id,
+          amount: Number(order.amount),
+          currency: order.currency,
+          keyId: this.keyId,
+        };
+      } catch (err) {
+        console.error("Razorpay order creation failed, falling back to simulated order in non-production:", err);
+        if (process.env.NODE_ENV === "production") {
+          throw new Error("Unable to create payment order with payment gateway.");
+        }
+      }
+    }
+
+    // Fallback for development/testing environments
+    const mockOrderId = `order_${crypto.randomUUID()}`;
     return {
-      orderId,
+      orderId: mockOrderId,
       amount,
       currency: "INR",
       keyId: this.keyId,

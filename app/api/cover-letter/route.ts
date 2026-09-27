@@ -18,7 +18,7 @@ const VALID_TONES: CoverLetterTone[] = [
 export async function GET(req: NextRequest) {
   try {
     const { userId } = await getUser(req);
-    const letters = repository.getCoverLetters();
+    const letters = await repository.getCoverLetters(userId);
     return NextResponse.json({ success: true, data: letters });
   } catch (error) {
     return handleApiError(error, "GET /api/cover-letter");
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     // M2: Validate tone against allowed enum values
     const selectedTone: CoverLetterTone = VALID_TONES.includes(tone) ? tone : "Professional & Polished";
 
-    const profile = repository.getProfile();
+    const profile = await repository.getProfile(userId);
 
     const generatedContent = await karyvoAI.generateCoverLetter(
       profile,
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
 
-    repository.saveCoverLetter(newLetter);
+    await repository.saveCoverLetter(newLetter);
 
     return NextResponse.json({ success: true, data: newLetter });
   } catch (error) {
@@ -101,9 +101,9 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Cover letter ID is required." }, { status: 400 });
     }
 
-    const deleted = repository.deleteCoverLetter(id);
+    const deleted = await repository.deleteCoverLetter(id, userId);
     if (!deleted) {
-      return NextResponse.json({ success: false, error: "Cover letter not found." }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Cover letter not found or unauthorized." }, { status: 404 });
     }
 
     return NextResponse.json({ success: true, message: "Cover letter deleted." });

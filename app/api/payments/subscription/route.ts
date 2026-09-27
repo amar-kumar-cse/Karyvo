@@ -7,7 +7,7 @@ import { rateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 export async function GET(req: NextRequest) {
   try {
     const { userId } = await getUser(req);
-    const subscription = repository.getSubscription();
+    const subscription = await repository.getSubscription(userId);
     return NextResponse.json({ success: true, data: subscription });
   } catch (error) {
     return handleApiError(error, "GET /api/payments/subscription");
@@ -24,7 +24,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Too many requests. Please wait." }, { status: 429 });
     }
 
-    const subscription = repository.cancelSubscription();
+    const subscription = await repository.cancelSubscription(userId);
     return NextResponse.json({
       success: true,
       message: "Subscription successfully canceled.",

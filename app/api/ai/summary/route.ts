@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const profile = repository.getProfile();
+    const profile = await repository.getProfile(userId);
     const summary = await karyvoAI.generateSummary(profile, targetRole || "Software Engineer");
 
     return NextResponse.json({ success: true, data: { summary } });

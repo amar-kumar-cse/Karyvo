@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, billingCycle } = body;
 
     // S1: Validate all required payment fields exist
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
@@ -38,8 +38,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Upgrade user to Pro in repository
-    const subscription = repository.upgradeToPro();
+    // H3: Upgrade user to Pro in repository with payment details, billing cycle, and expiration
+    const subscription = await repository.upgradeToPro(userId, {
+      billingCycle: billingCycle === "yearly" ? "yearly" : "monthly",
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+    });
 
     return NextResponse.json({
       success: true,

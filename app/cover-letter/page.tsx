@@ -4,7 +4,8 @@ import { CoverLetterWorkspace } from "@/components/cover-letter/cover-letter-wor
 export const dynamic = "force-dynamic";
 
 export default async function CoverLetterPage() {
-  const letters = repository.getCoverLetters();
+  const userId = "user-default";
+  const letters = await repository.getCoverLetters(userId);
 
   return <CoverLetterWorkspace initialLetters={letters} />;
 }

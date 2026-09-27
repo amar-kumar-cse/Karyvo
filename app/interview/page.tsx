@@ -4,7 +4,8 @@ import { InterviewWorkspace } from "@/components/interview/interview-workspace";
 export const dynamic = "force-dynamic";
 
 export default async function InterviewPage() {
-  const sessions = repository.getInterviewSessions();
+  const userId = "user-default";
+  const sessions = await repository.getInterviewSessions(userId);
 
   return <InterviewWorkspace initialSessions={sessions} />;
 }

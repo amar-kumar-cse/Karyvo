@@ -33,11 +33,8 @@ export async function POST(req: NextRequest) {
 
     // If sessionId is present, persist the answer and score into the session
     if (sessionId && typeof sessionId === "string") {
-      const sessions = repository.getInterviewSessions();
-      const existingSession = sessions.find((s) => s.id === sessionId);
-      if (existingSession && existingSession.questions) {
-        // H6: Deep copy session to avoid mutating in-memory store in-place
-        const session = structuredClone(existingSession);
+      const session = await repository.getInterviewSessionById(sessionId, userId);
+      if (session && session.questions) {
         const qIndex = typeof questionIndex === "number" ? questionIndex : 0;
         if (session.questions[qIndex]) {
           session.questions[qIndex].userAnswer = userAnswer;
@@ -54,7 +51,7 @@ export async function POST(req: NextRequest) {
           session.overallScore = Math.round(totalScore / answered.length);
         }
 
-        repository.saveInterviewSession(session);
+        await repository.saveInterviewSession(session);
       }
     }
 

@@ -4,7 +4,8 @@ import { MasterProfileWorkspace } from "@/components/profile/master-profile-work
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
-  const profile = repository.getProfile();
+  const userId = "user-default";
+  const profile = await repository.getProfile(userId);
 
   return <MasterProfileWorkspace initialProfile={profile} />;
 }

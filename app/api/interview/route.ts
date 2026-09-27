@@ -10,7 +10,7 @@ import crypto from "crypto";
 export async function GET(req: NextRequest) {
   try {
     const { userId } = await getUser(req);
-    const sessions = repository.getInterviewSessions();
+    const sessions = await repository.getInterviewSessions(userId);
     return NextResponse.json({ success: true, data: sessions });
   } catch (error) {
     return handleApiError(error, "GET /api/interview");
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Target role must be under 200 characters." }, { status: 400 });
     }
 
-    const profile = repository.getProfile();
+    const profile = await repository.getProfile(userId);
     const questions = await karyvoAI.generateInterviewQuestions(targetRole.trim(), profile);
 
     const session: InterviewSession = {
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
 
-    repository.saveInterviewSession(session);
+    await repository.saveInterviewSession(session);
 
     return NextResponse.json({ success: true, data: session });
   } catch (error) {
@@ -69,9 +69,9 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Session ID is required." }, { status: 400 });
     }
 
-    const deleted = repository.deleteInterviewSession(id);
+    const deleted = await repository.deleteInterviewSession(id, userId);
     if (!deleted) {
-      return NextResponse.json({ success: false, error: "Interview session not found." }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Interview session not found or unauthorized." }, { status: 404 });
     }
 
     return NextResponse.json({ success: true, message: "Interview session deleted." });
