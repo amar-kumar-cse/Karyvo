@@ -10,36 +10,48 @@ export function AmbientSpotlight() {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReducedMotion) return;
 
-    let rafId: number;
+    let rafId: number | null = null;
     let targetX = -1000;
     let targetY = -1000;
     let currentX = -1000;
     let currentY = -1000;
+    let isMoving = false;
+
+    const updateSpotlight = () => {
+      // Smooth lerp damping
+      const dx = targetX - currentX;
+      const dy = targetY - currentY;
+      currentX += dx * 0.12;
+      currentY += dy * 0.12;
+
+      if (spotlightRef.current) {
+        spotlightRef.current.style.setProperty("--spot-x", `${Math.round(currentX)}px`);
+        spotlightRef.current.style.setProperty("--spot-y", `${Math.round(currentY)}px`);
+      }
+
+      // If settled close enough to target, stop loop to save CPU
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+        rafId = requestAnimationFrame(updateSpotlight);
+      } else {
+        isMoving = false;
+        rafId = null;
+      }
+    };
 
     const handleMouseMove = (e: MouseEvent) => {
       targetX = e.clientX;
       targetY = e.clientY;
-    };
-
-    const updateSpotlight = () => {
-      // Smooth lerp damping
-      currentX += (targetX - currentX) * 0.08;
-      currentY += (targetY - currentY) * 0.08;
-
-      if (spotlightRef.current) {
-        spotlightRef.current.style.setProperty("--spot-x", `${currentX}px`);
-        spotlightRef.current.style.setProperty("--spot-y", `${currentY}px`);
+      if (!isMoving) {
+        isMoving = true;
+        rafId = requestAnimationFrame(updateSpotlight);
       }
-
-      rafId = requestAnimationFrame(updateSpotlight);
     };
 
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    rafId = requestAnimationFrame(updateSpotlight);
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
-      cancelAnimationFrame(rafId);
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, []);
 

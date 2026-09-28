@@ -33,21 +33,41 @@ body {
   font-family: var(--font-manrope), var(--font-inter), sans-serif;
 }
 
-/* Dreamy Blue Sky & Soft Cloud Horizon Canvas (matching reference design) */
+/* Dreamy Blue Sky & Soft Cloud Horizon Canvas (Hardware-Accelerated via GPU compositing) */
 .sky-cloud-canvas {
+  position: relative;
+  background-color: #f1f7fe;
+}
+
+.sky-cloud-canvas::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -20;
+  pointer-events: none;
   background-color: #f1f7fe;
   background-image:
-    /* Center sunlit glow behind main headlines for readability */
     radial-gradient(ellipse 1100px 550px at 50% 16%, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.25) 50%, transparent 80%),
     url('/images/saas_sky_clouds_bg.jpg');
   background-position: center top;
   background-size: cover;
   background-repeat: no-repeat;
-  background-attachment: fixed;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 /* Backwards compatibility alias for ambient-mesh */
 .ambient-mesh {
+  position: relative;
+  background-color: #f1f7fe;
+}
+
+.ambient-mesh::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -20;
+  pointer-events: none;
   background-color: #f1f7fe;
   background-image:
     radial-gradient(ellipse 1100px 550px at 50% 16%, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.25) 50%, transparent 80%),
@@ -55,7 +75,8 @@ body {
   background-position: center top;
   background-size: cover;
   background-repeat: no-repeat;
-  background-attachment: fixed;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 /* Unified Floating-Glass Surfaces */

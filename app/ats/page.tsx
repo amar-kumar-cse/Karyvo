@@ -56,8 +56,11 @@ Tools: ${Array.isArray(skills.tools) ? skills.tools.join(", ") : ""}`;
 export default async function ATSPage() {
   try {
     const userId = await getServerUserId();
-    let scans = await repository.getATSScans(userId);
-    const resumes = await repository.getResumes(userId);
+    const [fetchedScans, resumes] = await Promise.all([
+      repository.getATSScans(userId),
+      repository.getResumes(userId),
+    ]);
+    let scans = fetchedScans;
     const primaryResume = resumes[0];
 
     const sampleText = buildResumeText(primaryResume);

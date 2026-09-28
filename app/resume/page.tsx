@@ -8,8 +8,10 @@ export const dynamic = "force-dynamic";
 export default async function ResumePage() {
   try {
     const userId = await getServerUserId();
-    const profile = await repository.getProfile(userId);
-    const resumes = await repository.getResumes(userId);
+    const [profile, resumes] = await Promise.all([
+      repository.getProfile(userId),
+      repository.getResumes(userId),
+    ]);
     const primaryResume = resumes[0];
     const versions = primaryResume
       ? await repository.getVersionsByResumeId(primaryResume.id, userId)

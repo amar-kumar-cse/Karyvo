@@ -6,60 +6,89 @@ import { GlassBadge } from "@/components/ui/glass";
 
 export function Hero3DResumeCard() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [rotate, setRotate] = useState({ x: -6, y: 12 });
-  const [isHovered, setIsHovered] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const isHoveredRef = useRef(false);
+  const rAFRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // Disable oscillation if user prefers reduced motion
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReducedMotion) {
-      setRotate({ x: 0, y: 0 });
+      if (cardRef.current) cardRef.current.style.transform = "rotateX(0deg) rotateY(0deg)";
       return;
     }
 
-    if (isHovered) return;
     let frameId: number;
     let start = performance.now();
 
     const animate = (time: number) => {
-      const elapsed = (time - start) / 1000;
-      const x = Math.sin(elapsed * 0.7) * 5 - 3;
-      const y = Math.cos(elapsed * 0.5) * 8 + 8;
-      setRotate({ x, y });
+      if (!isHoveredRef.current && cardRef.current) {
+        const elapsed = (time - start) / 1000;
+        const x = Math.sin(elapsed * 0.7) * 5 - 3;
+        const y = Math.cos(elapsed * 0.5) * 8 + 8;
+        cardRef.current.style.transform = `rotateX(${x.toFixed(2)}deg) rotateY(${y.toFixed(2)}deg)`;
+      }
       frameId = requestAnimationFrame(animate);
     };
 
     frameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frameId);
-  }, [isHovered]);
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    if (!containerRef.current || !cardRef.current) return;
+    
+    if (rAFRef.current) {
+      cancelAnimationFrame(rAFRef.current);
+    }
+    
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    // Subtle restrained tilt (-12 to +12 degrees)
-    const rY = ((mouseX / rect.width) - 0.5) * 24;
-    const rX = -(((mouseY / rect.height) - 0.5) * 24);
+    rAFRef.current = requestAnimationFrame(() => {
+      if (!containerRef.current || !cardRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const mouseX = clientX - rect.left;
+      const mouseY = clientY - rect.top;
 
-    setRotate({ x: rX, y: rY });
+      // Restrained tilt (-12 to +12 degrees)
+      const rY = ((mouseX / rect.width) - 0.5) * 24;
+      const rX = -(((mouseY / rect.height) - 0.5) * 24);
+
+      cardRef.current.style.transform = `rotateX(${rX.toFixed(2)}deg) rotateY(${rY.toFixed(2)}deg)`;
+      rAFRef.current = null;
+    });
+  };
+
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    if (cardRef.current) {
+      cardRef.current.style.transition = "transform 0.1s ease-out";
+    }
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (cardRef.current) {
+      cardRef.current.style.transition = "transform 0.4s ease-out";
+    }
   };
 
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       className="relative w-full max-w-[480px] h-[550px] mx-auto flex items-center justify-center cursor-pointer select-none [perspective:1400px]"
     >
       {/* 3D Scene Root */}
       <div
+        ref={cardRef}
         style={{
-          transform: `rotateX(${rotate.x}deg) rotateY(${rotate.y}deg)`,
+          transform: "rotateX(-3deg) rotateY(10deg)",
           transformStyle: "preserve-3d",
-          transition: isHovered ? "transform 0.1s ease-out" : "transform 0.4s ease-out",
+          transition: "transform 0.4s ease-out",
+          willChange: "transform",
         }}
         className="relative w-[340px] sm:w-[380px] h-[480px] rounded-2xl p-6 bg-white/95 backdrop-blur-xl border border-white/80 shadow-[0_25px_60px_-15px_rgba(30,58,138,0.18),0_10px_25px_-5px_rgba(0,0,0,0.06)]"
       >
