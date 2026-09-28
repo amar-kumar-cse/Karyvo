@@ -21,4 +21,11 @@ export interface ATSScanResult {
   issues: ATSIssue[];
   actionableFixes: string[];
   scannedAt: string;
+  extractedText?: string;
+  detectedRole?: string;
+  detectedSkills?: string[];
+  missingKeywords?: string[];
+  wordCount?: number;
+  fileType?: "pdf" | "image" | "text" | "manual" | "unknown";
+  verdict?: string;
 }

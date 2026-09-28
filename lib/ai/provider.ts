@@ -64,7 +64,7 @@ Role context: "${roleOrContext || "Software Engineer"}"`;
         // AbortController with 15s timeout — AI calls must never hang indefinitely
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15_000);
-        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent", {
+        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

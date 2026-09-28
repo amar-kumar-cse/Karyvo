@@ -1,5 +1,50 @@
 import { ATSScanResult, ATSIssue } from "@/types/ats";
 
+const COMMON_SKILLS_DICTIONARY = [
+  "React",
+  "Next.js",
+  "TypeScript",
+  "JavaScript",
+  "Node.js",
+  "Express",
+  "Python",
+  "Django",
+  "FastAPI",
+  "Java",
+  "Spring Boot",
+  "C++",
+  "Go",
+  "Rust",
+  "SQL",
+  "PostgreSQL",
+  "MySQL",
+  "MongoDB",
+  "Redis",
+  "Docker",
+  "Kubernetes",
+  "AWS",
+  "GCP",
+  "Azure",
+  "Git",
+  "CI/CD",
+  "GitHub Actions",
+  "GraphQL",
+  "REST APIs",
+  "Microservices",
+  "Tailwind CSS",
+  "Redux",
+  "System Design",
+  "Unit Testing",
+  "Jest",
+  "Cypress",
+  "Kafka",
+  "RabbitMQ",
+  "Linux",
+  "Terraform",
+  "Prometheus",
+  "Grafana",
+];
+
 export class ATSScannerService {
   /**
    * Scans resume text across the 4 pillars:
@@ -8,7 +53,12 @@ export class ATSScannerService {
    * 3. Keyword Strength
    * 4. Quantification (Metrics & Impact)
    */
-  public analyzeResume(resumeText: string, resumeName = "My Resume.pdf", resumeId?: string): ATSScanResult {
+  public analyzeResume(
+    resumeText: string,
+    resumeName = "My Resume.pdf",
+    resumeId?: string,
+    fileType?: "pdf" | "image" | "text" | "manual" | "unknown"
+  ): ATSScanResult {
     const text = resumeText || "";
     const lower = text.toLowerCase();
     const issues: ATSIssue[] = [];
@@ -18,10 +68,10 @@ export class ATSScannerService {
     // --- 1. FORMATTING EVALUATION ---
     let formattingScore = 80;
     const commonHeaders = [
-      { name: "experience", regex: /\b(experience|work history|employment)\b/i },
-      { name: "education", regex: /\b(education|academic background|qualifications)\b/i },
-      { name: "projects", regex: /\b(projects|academic projects|technical projects)\b/i },
-      { name: "skills", regex: /\b(skills|technical skills|technologies)\b/i },
+      { name: "experience", regex: /\b(experience|work history|employment|professional experience)\b/i },
+      { name: "education", regex: /\b(education|academic background|qualifications|academic credentials)\b/i },
+      { name: "projects", regex: /\b(projects|academic projects|technical projects|key initiatives)\b/i },
+      { name: "skills", regex: /\b(skills|technical skills|technologies|core competencies|tools)\b/i },
     ];
 
     let matchedHeaders = 0;
@@ -87,10 +137,10 @@ export class ATSScannerService {
       actionableFixes.push("Include your LinkedIn and GitHub/Portfolio URLs.");
     }
 
-    const wordCount = text.trim().split(/\s+/).length;
-    if (wordCount >= 250 && wordCount <= 900) {
+    const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+    if (wordCount >= 250 && wordCount <= 950) {
       completenessScore = Math.min(100, completenessScore + 10);
-      strengths.push(`Optimal resume length (${wordCount} words) fitting standard 1-page density.`);
+      strengths.push(`Optimal resume length (${wordCount} words) fitting standard corporate density.`);
     } else if (wordCount < 250) {
       completenessScore -= 25;
       issues.push({
@@ -131,6 +181,10 @@ export class ATSScannerService {
       "resolved",
       "reduced",
       "scaled",
+      "championed",
+      "revamped",
+      "accelerated",
+      "configured",
     ];
 
     const weakPhrases = [
@@ -140,6 +194,7 @@ export class ATSScannerService {
       "assisted in",
       "duties included",
       "handled",
+      "participated in",
     ];
 
     let strongVerbCount = 0;
@@ -159,6 +214,9 @@ export class ATSScannerService {
     if (strongVerbCount >= 5) {
       keywordScore += 25;
       strengths.push(`High density of strong technical action verbs (${strongVerbCount} distinct power verbs found).`);
+    } else if (strongVerbCount >= 2) {
+      keywordScore += 10;
+      strengths.push(`Found ${strongVerbCount} strong action verbs; adding more will improve ATS ranking.`);
     } else {
       issues.push({
         id: "kw-verbs",
@@ -184,13 +242,57 @@ export class ATSScannerService {
       actionableFixes.push("Eliminate 'responsible for' and state the direct engineering result.");
     }
 
+    // Detect technical skills
+    const detectedSkills: string[] = [];
+    for (const skill of COMMON_SKILLS_DICTIONARY) {
+      const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`(?:\\b|\\s|^)${escaped}(?:\\b|\\s|[,;.:]|$)`, "i");
+      if (regex.test(text)) {
+        detectedSkills.push(skill);
+      }
+    }
+
+    if (detectedSkills.length >= 8) {
+      keywordScore = Math.min(100, keywordScore + 10);
+      strengths.push(`Rich skill repertoire: detected ${detectedSkills.length} industry skills.`);
+    }
+
+    // Detect candidate role domain
+    let detectedRole = "Software Engineer";
+    if (/machine learning|deep learning|pytorch|tensorflow|pandas|data science|nlp|llm/i.test(text)) {
+      detectedRole = "AI & Data Scientist";
+    } else if (/devops|kubernetes|terraform|ci\/cd|helm|prometheus|grafana|ansible/i.test(text)) {
+      detectedRole = "DevOps & Cloud Engineer";
+    } else if (/react|next\.js|frontend|vue|angular|css|tailwind|html5/i.test(text) && !/microservices|distributed/i.test(text)) {
+      detectedRole = "Frontend Engineer";
+    } else if (/microservices|distributed systems|grpc|kafka|redis|sql|postgres|database/i.test(text)) {
+      detectedRole = "Backend & Systems Engineer";
+    } else if (/react|node|full-stack|fullstack|next\.js/i.test(text)) {
+      detectedRole = "Full-Stack Engineer";
+    }
+
+    // Role-specific missing keywords recommendations
+    const roleKeywordPool: Record<string, string[]> = {
+      "Frontend Engineer": ["Core Web Vitals", "Accessibility (a11y)", "State Management", "Responsive UI", "Bundle Optimization", "SSR/SSG"],
+      "Backend & Systems Engineer": ["p99 Latency", "Distributed Architecture", "Horizontal Scaling", "Database Indexing", "Message Queues", "Idempotency"],
+      "Full-Stack Engineer": ["End-to-End Testing", "API Integration", "Database Migration", "CI/CD Pipeline", "Microservices", "System Architecture"],
+      "DevOps & Cloud Engineer": ["Infrastructure as Code", "Zero-Downtime Deployments", "Container Security", "Disaster Recovery", "SLA / SLO Monitoring"],
+      "AI & Data Scientist": ["Model Evaluation", "Feature Engineering", "ETL Pipelines", "Inference Latency", "A/B Experimentation", "Vector Databases"],
+      "Software Engineer": ["Clean Architecture", "Code Reviews", "Unit & Integration Tests", "Performance Tuning", "Agile / Scrum"],
+    };
+
+    const targetPool = roleKeywordPool[detectedRole] || roleKeywordPool["Software Engineer"];
+    const missingKeywords = targetPool.filter(
+      (kw) => !new RegExp(`\\b${kw.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`, "i").test(text)
+    ).slice(0, 5);
+
     // --- 4. QUANTIFICATION EVALUATION (Metrics & Impact) ---
     let quantificationScore = 60;
     const metricsMatches = text.match(/\b\d+(\.\d+)?(%|x|k|m|cr|lakh|ms|sec|users|clients|rps|gb|tb)\b|\$\d+|\b₹\d+/gi) || [];
     const metricCount = metricsMatches.length;
 
     if (metricCount >= 4) {
-      quantificationScore = Math.min(100, 75 + metricCount * 5);
+      quantificationScore = Math.min(100, 78 + metricCount * 4);
       strengths.push(`Exceptional quantification: found ${metricCount} measurable outcomes (percentages, speed, scale, financial).`);
     } else if (metricCount >= 2) {
       quantificationScore = 72;
@@ -217,6 +319,16 @@ export class ATSScannerService {
     // Overall composite score
     const overall = Math.round(fScore * 0.25 + cScore * 0.25 + kScore * 0.25 + qScore * 0.25);
 
+    // Verdict determination
+    let verdict = "Action Needed - Low ATS Readability";
+    if (overall >= 88) {
+      verdict = "Top 3% Corporate Elite - ATS Certified";
+    } else if (overall >= 75) {
+      verdict = "Interview Ready - High Pass Rate";
+    } else if (overall >= 60) {
+      verdict = "Borderline - Moderate Metric Gaps";
+    }
+
     if (actionableFixes.length === 0) {
       actionableFixes.push("Your resume meets top-tier ATS criteria! Run the AI Resume Improver to polish wording further.");
     }
@@ -234,6 +346,13 @@ export class ATSScannerService {
       issues,
       actionableFixes,
       scannedAt: new Date().toISOString(),
+      extractedText: text,
+      detectedRole,
+      detectedSkills,
+      missingKeywords,
+      wordCount,
+      fileType: fileType || "manual",
+      verdict,
     };
   }
 }

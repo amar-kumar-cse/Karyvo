@@ -27,9 +27,12 @@ export function middleware(request: NextRequest) {
       const contentLength = request.headers.get("content-length");
       const hasBody = contentLength ? parseInt(contentLength, 10) > 0 : true;
 
-      if (hasBody && (!contentType || !contentType.includes("application/json"))) {
+      const isJson = contentType?.includes("application/json");
+      const isMultipart = contentType?.includes("multipart/form-data");
+
+      if (hasBody && (!contentType || (!isJson && !isMultipart))) {
         return NextResponse.json(
-          { success: false, error: "Unsupported Media Type. Content-Type must be application/json." },
+          { success: false, error: "Unsupported Media Type. Content-Type must be application/json or multipart/form-data." },
           { status: 415 }
         );
       }
