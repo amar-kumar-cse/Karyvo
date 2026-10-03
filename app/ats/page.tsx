@@ -1,5 +1,5 @@
-import { repository, SEED_PROFILE } from "@/lib/db/repository";
-import { getServerUserId } from "@/lib/auth/getUser";
+import { repository } from "@/lib/db/repository";
+import { requireServerUserId } from "@/lib/auth/getUser";
 import { ATSScannerWorkspace } from "@/components/ats/ats-scanner-workspace";
 import { atsScanner } from "@/lib/ats/scanner";
 
@@ -54,8 +54,8 @@ Tools: ${Array.isArray(skills.tools) ? skills.tools.join(", ") : ""}`;
 }
 
 export default async function ATSPage() {
+  const userId = await requireServerUserId("/ats");
   try {
-    const userId = await getServerUserId();
     const [fetchedScans, resumes] = await Promise.all([
       repository.getATSScans(userId),
       repository.getResumes(userId),
@@ -67,7 +67,8 @@ export default async function ATSPage() {
 
     // Pre-seed initial scan if repository has no scan history yet
     if (scans.length === 0 && sampleText.trim()) {
-      const defaultScan = atsScanner.analyzeResume(sampleText, "Arjun_Sharma_Resume.pdf");
+      const resumeFileName = `${primaryResume?.title?.replace(/\s+/g, "_") || "Resume"}.pdf`;
+      const defaultScan = atsScanner.analyzeResume(sampleText, resumeFileName);
       await repository.saveATSScan(defaultScan, userId);
       scans = [defaultScan];
     }

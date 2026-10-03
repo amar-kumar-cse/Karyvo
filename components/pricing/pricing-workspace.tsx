@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Crown,
   Check,
@@ -13,11 +13,37 @@ import {
 } from "lucide-react";
 import { GlassCard, GlassBadge, GlassButton } from "@/components/ui/glass";
 
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") return resolve(false);
+    if ((window as any).Razorpay) return resolve(true);
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export function PricingWorkspace() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [isLoading, setIsLoading] = useState(false);
   const [isProActive, setIsProActive] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  // Read subscription status from server on mount
+  useEffect(() => {
+    fetch("/api/payments/subscription")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.data?.isPro) {
+          setIsProActive(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleRazorpayCheckout = async () => {
     setIsLoading(true);
@@ -29,16 +55,76 @@ export function PricingWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ billingCycle }),
       });
+      if (res.status === 401) {
+        window.location.href = "/login?next=/pricing";
+        return;
+      }
       const orderData = await res.json();
 
       if (!orderData.success || !orderData.data) {
-        throw new Error("Could not create Razorpay order.");
+        throw new Error(orderData.error || "Could not create Razorpay order.");
       }
 
-      const { orderId } = orderData.data;
+      const { orderId, amount, currency, keyId } = orderData.data;
 
-      // In production, window.Razorpay checkout would open here.
-      // In sandbox/development, simulate secure server-side HMAC verification:
+      // 2. Load Razorpay Checkout SDK if real keys are configured
+      const scriptLoaded = await loadRazorpayScript();
+      const isRealKey = keyId && keyId !== "rzp_test_karyvo_mock";
+
+      if (scriptLoaded && isRealKey && (window as any).Razorpay) {
+        const options = {
+          key: keyId,
+          amount: amount,
+          currency: currency || "INR",
+          name: "Karyvo",
+          description: `Karyvo Pro (${billingCycle === "yearly" ? "Annual" : "Monthly"})`,
+          order_id: orderId,
+          handler: async function (response: {
+            razorpay_order_id: string;
+            razorpay_payment_id: string;
+            razorpay_signature: string;
+          }) {
+            try {
+              setIsLoading(true);
+              const verifyRes = await fetch("/api/payments/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                }),
+              });
+
+              const verifyData = await verifyRes.json();
+              if (verifyData.success) {
+                setIsProActive(true);
+                setStatusMessage("🎉 Payment verified via Razorpay! Pro entitlement unlocked.");
+              } else {
+                setStatusMessage(verifyData.error || "Signature verification failed.");
+              }
+            } catch (err: any) {
+              setStatusMessage(err?.message || "Verification request failed.");
+            } finally {
+              setIsLoading(false);
+            }
+          },
+          modal: {
+            ondismiss: function () {
+              setIsLoading(false);
+            },
+          },
+          theme: {
+            color: "#F59E0B",
+          },
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+        return;
+      }
+
+      // 3. Fallback for development/testing environments without live Razorpay credentials
       const mockPaymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       const mockSignature = `sig_mock_${orderId}`;
 
@@ -55,10 +141,9 @@ export function PricingWorkspace() {
       const verifyData = await verifyRes.json();
       if (verifyData.success) {
         setIsProActive(true);
-        localStorage.setItem("karyvo_pro_active", "true");
-        setStatusMessage("🎉 Payment verified via Razorpay! Pro entitlement unlocked.");
+        setStatusMessage("🎉 [Sandbox Mode]: Payment verified via server HMAC! Pro entitlement unlocked.");
       } else {
-        setStatusMessage("Signature verification failed.");
+        setStatusMessage(verifyData.error || "Signature verification failed.");
       }
     } catch (err: any) {
       console.error("Checkout error:", err);
@@ -67,6 +152,7 @@ export function PricingWorkspace() {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12 space-y-10">

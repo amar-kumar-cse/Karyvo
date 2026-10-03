@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   FileText,
   User,
@@ -14,29 +14,70 @@ import {
   Menu,
   X,
   ChevronDown,
+  LogOut,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GlassBadge } from "@/components/ui/glass";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isPro, setIsPro] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
 
+  // Track the signed-in user (verified with Supabase) and keep it in sync on login/logout.
   useEffect(() => {
-    fetch("/api/payments/subscription")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.data?.tier === "pro" && data?.data?.status === "active") {
-          setIsPro(true);
-        } else {
-          const storedPro = localStorage.getItem("karyvo_pro_active");
-          if (storedPro === "true") setIsPro(true);
-        }
-      })
-      .catch(() => { });
+    const supabase = createSupabaseBrowserClient();
+    if (!supabase) {
+      setAuthReady(true);
+      return;
+    }
+
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      setUserEmail(data.user?.email ?? null);
+      setAuthReady(true);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user?.email ?? null);
+    });
+
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
   }, []);
+
+  // Subscription status is only requested for signed-in users.
+  useEffect(() => {
+    if (!userEmail) {
+      setIsPro(false);
+      return;
+    }
+    fetch("/api/payments/subscription")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        setIsPro(Boolean(data?.data?.isPro));
+      })
+      .catch(() => {
+        setIsPro(false);
+      });
+  }, [userEmail]);
+
+  async function handleSignOut() {
+    const supabase = createSupabaseBrowserClient();
+    await supabase?.auth.signOut();
+    setUserEmail(null);
+    setMobileOpen(false);
+    router.replace("/");
+    router.refresh();
+  }
 
   // Close menus on route change
   useEffect(() => {
@@ -156,6 +197,44 @@ export function Navbar() {
             <span>{isPro ? "Pro Active" : "Upgrade Pro"}</span>
           </Link>
 
+          {/* Account (desktop) */}
+          {authReady && (
+            <div className="hidden md:flex items-center gap-2">
+              {userEmail ? (
+                <>
+                  <span
+                    className="max-w-[10rem] truncate text-xs font-medium text-slate-600"
+                    title={userEmail}
+                  >
+                    {userEmail}
+                  </span>
+                  <button
+                    onClick={handleSignOut}
+                    className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>Log out</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:text-indigo-600"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-indigo-500/25 transition-all hover:brightness-105"
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Mobile Hamburger Button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -204,6 +283,40 @@ export function Navbar() {
               {isPro ? "Pro Active" : "Pricing Plans"}
             </Link>
           </div>
+
+          {authReady && (
+            <div className="flex items-center gap-2 border-t border-slate-100 pt-3">
+              {userEmail ? (
+                <>
+                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-600" title={userEmail}>
+                    {userEmail}
+                  </span>
+                  <button
+                    onClick={handleSignOut}
+                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm"
+                  >
+                    <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>Log out</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="flex-1 rounded-xl border border-slate-200 bg-white py-2 text-center text-xs font-semibold text-slate-700 shadow-sm"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-2 text-center text-xs font-semibold text-white shadow-sm"
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
     </header>

@@ -1,12 +1,12 @@
-import { repository, SEED_PROFILE } from "@/lib/db/repository";
-import { getServerUserId } from "@/lib/auth/getUser";
+import { repository } from "@/lib/db/repository";
+import { requireServerUserId } from "@/lib/auth/getUser";
 import { CoverLetterWorkspace } from "@/components/cover-letter/cover-letter-workspace";
 
 export const dynamic = "force-dynamic";
 
 export default async function CoverLetterPage() {
+  const userId = await requireServerUserId("/cover-letter");
   try {
-    const userId = await getServerUserId();
     const letters = await repository.getCoverLetters(userId);
     return <CoverLetterWorkspace initialLetters={letters} />;
   } catch (err) {

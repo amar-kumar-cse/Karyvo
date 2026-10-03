@@ -45,3 +45,6 @@ Thumbs.db
 
 # Scratch & temporary test scripts
 scratch/
+
+# Local graphify output
+graphify-out/

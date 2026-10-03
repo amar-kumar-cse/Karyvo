@@ -1,12 +1,12 @@
-import { repository, SEED_PROFILE } from "@/lib/db/repository";
-import { getServerUserId } from "@/lib/auth/getUser";
+import { repository, createEmptyProfile } from "@/lib/db/repository";
+import { requireServerUserId } from "@/lib/auth/getUser";
 import { DashboardWorkspace } from "@/components/dashboard/dashboard-workspace";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  const userId = await requireServerUserId("/dashboard");
   try {
-    const userId = await getServerUserId();
     const profile = await repository.getProfile(userId);
     const resumes = await repository.getResumes(userId);
     const versions = resumes[0]
@@ -28,7 +28,7 @@ export default async function DashboardPage() {
     console.error("[DashboardPage] Failed to load:", err);
     return (
       <DashboardWorkspace
-        profile={SEED_PROFILE}
+        profile={createEmptyProfile(userId)}
         resumes={[]}
         versions={[]}
         atsScans={[]}

@@ -1,6 +1,7 @@
-import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { DEMO_USER_ID, getSupabaseEnv, isDemoMode } from "@/lib/auth/config";
 
 export interface AuthUser {
   userId: string;
@@ -14,112 +15,80 @@ export class AuthError extends Error {
   }
 }
 
-// Lazy-initialized Supabase client for auth verification
-function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key || url.includes("your-project")) {
-    return null;
+/**
+ * Authenticate the caller of an API route. FAILS CLOSED: if there is no valid,
+ * server-verified Supabase user, an AuthError (HTTP 401) is thrown.
+ *
+ * Accepted credentials (in order):
+ *   1. `Authorization: Bearer <access_token>` (API clients / mobile apps)
+ *   2. The Supabase session cookies set by @supabase/ssr (the browser app)
+ */
+export async function getUser(req: Request): Promise<AuthUser> {
+  if (isDemoMode()) {
+    return { userId: DEMO_USER_ID, email: "demo@karyvo.local" };
   }
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+
+  const env = getSupabaseEnv();
+  if (!env) {
+    // Misconfiguration must never turn into "everyone is logged in".
+    console.error("Auth is not configured: set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+    throw new AuthError("Authentication is not available");
+  }
+
+  // 1. Bearer token
+  const authHeader = req.headers.get("authorization");
+  if (authHeader?.toLowerCase().startsWith("bearer ")) {
+    const token = authHeader.slice(7).trim();
+    if (!token) throw new AuthError("Invalid or expired session");
+
+    const supabase = createClient(env.url, env.anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data.user) throw new AuthError("Invalid or expired session");
+    return { userId: data.user.id, email: data.user.email ?? undefined };
+  }
+
+  // 2. Session cookies
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) throw new AuthError("Authentication is not available");
+
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) throw new AuthError();
+  return { userId: data.user.id, email: data.user.email ?? undefined };
 }
 
 /**
- * C1/C2: Authenticate and retrieve user identity.
- * 1. Checks Authorization: Bearer <token>
- * 2. Checks Supabase session cookies
- * 3. Validates via Supabase Auth if credentials are configured
- * 4. Falls back safely to dev user only in non-production environments
+ * For Server Components: the verified user, or null when signed out.
+ * Never returns a value taken from an unverified cookie.
  */
-export async function getUser(req: NextRequest | Request): Promise<AuthUser> {
-  const headers = req.headers as Headers;
-  const authHeader = headers.get("authorization");
-  let token: string | null = null;
-
-  if (authHeader?.startsWith("Bearer ")) {
-    token = authHeader.slice(7).trim();
+export async function getServerUser(): Promise<AuthUser | null> {
+  if (isDemoMode()) {
+    return { userId: DEMO_USER_ID, email: "demo@karyvo.local" };
   }
 
-  // If no bearer token, attempt to extract access token from cookies
-  if (!token) {
-    try {
-      const cookieStore = await cookies();
-      const sbTokenCookie =
-        cookieStore.get("sb-access-token")?.value ||
-        cookieStore.get("supabase-auth-token")?.value ||
-        cookieStore.get("sb:token")?.value;
-      if (sbTokenCookie) {
-        token = sbTokenCookie;
-      }
-    } catch {
-      // Cookie store may not be available in all execution contexts
-    }
-  }
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return null;
 
-  // Also support custom developer / test user header in non-production
-  const devUserIdHeader = headers.get("x-user-id");
-  if (process.env.NODE_ENV !== "production" && devUserIdHeader) {
-    return { userId: devUserIdHeader.trim() };
-  }
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) return null;
+  return { userId: data.user.id, email: data.user.email ?? undefined };
+}
 
-  const supabase = getSupabaseClient();
-
-  if (token) {
-    if (supabase) {
-      try {
-        const { data, error } = await supabase.auth.getUser(token);
-        if (error || !data.user) {
-          throw new AuthError("Invalid or expired session token");
-        }
-        return {
-          userId: data.user.id,
-          email: data.user.email,
-        };
-      } catch (err) {
-        if (err instanceof AuthError) throw err;
-        console.error("Supabase auth verification failed:", err);
-        throw new AuthError("Authentication verification failed");
-      }
-    }
-
-    // In dev mode when Supabase is not connected, use the token as the user ID
-    if (process.env.NODE_ENV !== "production") {
-      return { userId: token };
-    }
-  }
-
-  // If no auth credentials provided, allow guest user session for trial builder experience
-  return { userId: "user-default" };
+/** Back-compat helper: verified user id or null. */
+export async function getServerUserId(): Promise<string | null> {
+  const user = await getServerUser();
+  return user?.userId ?? null;
 }
 
 /**
- * Server component helper to get the active user ID from cookies or fallback
+ * For protected pages: returns the verified user id or redirects to /login.
+ * NOTE: redirect() works by throwing, so call this OUTSIDE any try/catch.
  */
-export async function getServerUserId(): Promise<string> {
-  try {
-    const cookieStore = await cookies();
-    const token =
-      cookieStore.get("sb-access-token")?.value ||
-      cookieStore.get("supabase-auth-token")?.value ||
-      cookieStore.get("sb:token")?.value ||
-      cookieStore.get("karyvo-user-id")?.value;
-
-    if (token) {
-      const supabase = getSupabaseClient();
-      if (supabase) {
-        try {
-          const { data } = await supabase.auth.getUser(token);
-          if (data?.user?.id) return data.user.id;
-        } catch {
-          // fallback
-        }
-      }
-      return token;
-    }
-  } catch {
-    // cookies() not available
+export async function requireServerUserId(nextPath: string): Promise<string> {
+  const userId = await getServerUserId();
+  if (!userId) {
+    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
   }
-  return "user-default";
+  return userId;
 }

@@ -1,13 +1,12 @@
-import { repository } from "@/lib/db/repository";
-import { getServerUserId } from "@/lib/auth/getUser";
+import { repository, createEmptyProfile } from "@/lib/db/repository";
+import { requireServerUserId } from "@/lib/auth/getUser";
 import { ResumeBuilderWorkspace } from "@/components/resume/resume-builder-workspace";
-import { SEED_PROFILE } from "@/lib/db/repository";
 
 export const dynamic = "force-dynamic";
 
 export default async function ResumePage() {
+  const userId = await requireServerUserId("/resume");
   try {
-    const userId = await getServerUserId();
     const [profile, resumes] = await Promise.all([
       repository.getProfile(userId),
       repository.getResumes(userId),
@@ -30,7 +29,7 @@ export default async function ResumePage() {
     return (
       <ResumeBuilderWorkspace
         initialResume={undefined}
-        profile={SEED_PROFILE}
+        profile={createEmptyProfile(userId)}
         versions={[]}
       />
     );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { repository } from "@/lib/db/repository";
+import { checkProStatus } from "@/lib/payments/pro";
 import { getUser } from "@/lib/auth/getUser";
 import { handleApiError } from "@/lib/apiError";
 import { rateLimit, RATE_LIMITS } from "@/lib/rateLimit";
@@ -8,7 +9,18 @@ export async function GET(req: NextRequest) {
   try {
     const { userId } = await getUser(req);
     const subscription = await repository.getSubscription(userId);
-    return NextResponse.json({ success: true, data: subscription });
+    const proStatus = await checkProStatus(userId);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...(subscription || {}),
+        isPro: proStatus.isPro,
+        plan: proStatus.plan,
+        status: proStatus.status,
+        currentPeriodEnd: proStatus.currentPeriodEnd,
+      },
+    });
   } catch (error) {
     return handleApiError(error, "GET /api/payments/subscription");
   }

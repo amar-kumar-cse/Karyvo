@@ -15,16 +15,17 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, billingCycle } = body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
 
-    // S1: Validate all required payment fields exist
+    // Validate all required payment fields exist
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return NextResponse.json(
-        { success: false, error: "Missing payment verification fields." },
+        { success: false, error: "Missing required payment verification fields." },
         { status: 400 }
       );
     }
 
+    // Verify cryptographic signature first
     const isValid = paymentService.verifySignature({
       razorpay_order_id,
       razorpay_payment_id,
@@ -38,9 +39,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // H3: Upgrade user to Pro in repository with payment details, billing cycle, and expiration
+    // Lookup order in database to prevent account takeover and replay attacks
+    const existingOrder = await repository.getOrderByRazorpayId(razorpay_order_id);
+    if (!existingOrder) {
+      return NextResponse.json(
+        { success: false, error: "Payment order not found in records." },
+        { status: 404 }
+      );
+    }
+
+    // Ensure the paying user owns the order
+    if (existingOrder.userId !== userId) {
+      return NextResponse.json(
+        { success: false, error: "Payment order does not belong to the authenticated user." },
+        { status: 403 }
+      );
+    }
+
+    // If order was already processed and marked paid, return current active subscription idempotently
+    if (existingOrder.status === "paid") {
+      const currentSub = await repository.getSubscription(userId);
+      return NextResponse.json({
+        success: true,
+        message: "Payment was already verified and credited.",
+        data: currentSub,
+      });
+    }
+
+    // Mark order as paid in database
+    await repository.markOrderPaid(razorpay_order_id, razorpay_payment_id);
+
+    // Upgrade user to Pro, strictly deriving billingCycle from the saved DB order (never trust client payload)
     const subscription = await repository.upgradeToPro(userId, {
-      billingCycle: billingCycle === "yearly" ? "yearly" : "monthly",
+      billingCycle: existingOrder.billingCycle,
       paymentId: razorpay_payment_id,
       orderId: razorpay_order_id,
     });
@@ -54,3 +85,4 @@ export async function POST(req: NextRequest) {
     return handleApiError(error, "POST /api/payments/verify");
   }
 }
+

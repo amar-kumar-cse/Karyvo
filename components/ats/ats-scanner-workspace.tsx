@@ -241,18 +241,18 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
   const getScoreBadge = (score: number) => {
     if (score >= 88)
       return {
-        label: "Top 3% Corporate Elite - ATS Certified",
+        label: "Excellent Health - High ATS Compatibility",
         variant: "emerald" as const,
-        description: "Exceptional alignment. Ready for automated high-volume corporate screening.",
+        description: "Exceptional structure, power action verbs, and quantifiable metrics detected.",
       };
     if (score >= 75)
       return {
-        label: "Interview Ready - High Pass Probability",
+        label: "Good Health - Ready for Review",
         variant: "violet" as const,
-        description: "Strong baseline. Will bypass primary ATS keyword gates smoothly.",
+        description: "Strong baseline formatting and keyword coverage. Adding more measurable impact is recommended.",
       };
     return {
-      label: "Borderline - Moderate Metric Gaps",
+      label: "Needs Attention - Key Gaps Detected",
       variant: "amber" as const,
       description: "Needs metric quantification and stronger action verbs to prevent automatic filtration.",
     };
@@ -483,6 +483,15 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
               </div>
             )}
 
+            {/* Privacy & AI Disclosure Notice */}
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 text-[11px] text-slate-500">
+              <ShieldCheck className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <span>
+                Privacy Guarantee: Your resume is processed securely. Images or complex PDFs may use Google Gemini Vision OCR in accordance with our{" "}
+                <Link href="/privacy" className="text-indigo-600 underline hover:text-indigo-700">Privacy Policy</Link>.
+              </span>
+            </div>
+
             {/* Action Bar */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
               <div className="flex items-center gap-2">
@@ -560,7 +569,8 @@ export function ATSScannerWorkspace({ initialScans, sampleResumeText }: Props) {
                     </span>
                     <span className="text-xs text-slate-500 font-heading">/100</span>
                   </div>
-                  <div className="text-base font-bold text-slate-900 font-heading">Overall ATS Score</div>
+                  <div className="text-base font-bold text-slate-900 font-heading">Resume Health Score</div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Calculated across structure, content, keywords & metrics</p>
 
                   {/* Verdict Badge */}
                   <div className="mt-2">

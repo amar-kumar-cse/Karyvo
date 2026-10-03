@@ -63,6 +63,20 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `npm run build` — Builds the optimized production application.
 - `npm run start` — Starts the production build server.
 - `npm run lint` — Runs ESLint code quality checks.
+- `npm test` — Runs unit tests (Vitest).
+
+---
+
+## 🔐 Authentication Setup (Supabase Auth)
+
+Karyvo uses Supabase Auth (email + password, Google sign-in, email verification, password reset). Private pages redirect to `/login`, and every API route returns `401` without a verified session.
+
+1. Create a Supabase project and copy the URL, anon key and service-role key into `.env.local`.
+2. In **Authentication → URL Configuration** set *Site URL* to your app URL (`http://localhost:3000` locally) and add `http://localhost:3000/auth/callback` and `https://YOUR-DOMAIN/auth/callback` to *Redirect URLs*.
+3. In **Authentication → Providers** enable *Email* (keep "Confirm email" on) and *Google* (create OAuth credentials in Google Cloud Console; use the callback URL shown by Supabase).
+4. Run `npm test` to execute the auth unit tests.
+
+For quick UI-only work without Supabase you can set `DEMO_MODE=true` in `.env.local`. Demo mode is ignored in production and whenever Supabase keys are present.
 
 ---
 

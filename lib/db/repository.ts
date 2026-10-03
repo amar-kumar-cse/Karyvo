@@ -5,9 +5,9 @@ import { CoverLetter } from "@/types/cover-letter";
 import { InterviewSession } from "@/types/interview";
 import { Subscription } from "@/types/payment";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { DEMO_USER_ID, isDemoMode } from "@/lib/auth/config";
 import crypto from "crypto";
 
-// L1: Fixed ISO strings for seed data timestamps (no drift on each restart)
 const SEED_DATE = "2025-01-15T10:00:00.000Z";
 const SEED_DATE_V1 = "2025-01-12T10:00:00.000Z";
 const SEED_DATE_V2 = "2025-01-14T10:00:00.000Z";
@@ -99,26 +99,54 @@ export const SEED_PROFILE: MasterCareerProfile = {
       id: "cert-1",
       name: "AWS Certified Solutions Architect – Associate",
       issuer: "Amazon Web Services",
-      issueDate: "Nov 2023",
+      issueDate: "2023",
       credentialUrl: "https://aws.amazon.com/verification",
     },
   ],
   achievements: [
-    "Winner, Smart India Hackathon (SIH) 2021 — Built automated disaster management routing portal.",
-    "Authored technical article on Database Connection Pooling with over 15,000 reads on Medium.",
+    "1st Place – Smart India Hackathon (SIH 2021): Led 6-member team building an automated disaster response tracking dashboard for NDRF (2021).",
   ],
   currentCtc: "18 LPA",
   expectedCtc: "26 LPA",
   noticePeriod: "30 Days (Negotiable)",
-  preferredLocation: "Bengaluru / Remote",
+  preferredLocation: "Bengaluru / Hyderabad / Remote",
   workMode: "Hybrid",
 };
 
+export function createEmptyProfile(userId: string): MasterCareerProfile {
+  const now = new Date().toISOString();
+  return {
+    userId,
+    fullName: "",
+    email: "",
+    phone: "",
+    location: "",
+    linkedinUrl: "",
+    githubUrl: "",
+    portfolioUrl: "",
+    summary: "",
+    isFresherMode: false,
+    education: [],
+    experience: [],
+    projects: [],
+    skills: { technical: [], frameworks: [], tools: [], soft: [] },
+    certifications: [],
+    achievements: [],
+    currentCtc: "",
+    expectedCtc: "",
+    noticePeriod: "",
+    preferredLocation: "",
+    workMode: "Remote",
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 export const SEED_RESUME: Resume = {
   id: "res-default-01",
-  userId: "user-default",
-  title: "Principal Software Engineer Resume (2025 Standard)",
-  targetRole: "Senior Full-Stack Engineer / Backend SDE-2",
+  userId: DEMO_USER_ID,
+  title: "Full-Stack SDE Resume (Target: Tier-1 Tech)",
+  targetRole: "Senior Software Engineer (Full Stack)",
   templateId: "modern-tech",
   isPrimary: true,
   createdAt: SEED_DATE,
@@ -147,7 +175,7 @@ export const SEED_VERSIONS: ResumeVersion[] = [
   {
     id: "ver-001",
     resumeId: "res-default-01",
-    userId: "user-default",
+    userId: DEMO_USER_ID,
     versionNumber: 1,
     versionLabel: "Initial Baseline Draft",
     changeSummary: "First import from master profile",
@@ -157,7 +185,7 @@ export const SEED_VERSIONS: ResumeVersion[] = [
   {
     id: "ver-002",
     resumeId: "res-default-01",
-    userId: "user-default",
+    userId: DEMO_USER_ID,
     versionNumber: 2,
     versionLabel: "Metrics & XYZ Quantification Added",
     changeSummary: "Enhanced bullet points with quantifiable performance and revenue outcomes",
@@ -166,10 +194,24 @@ export const SEED_VERSIONS: ResumeVersion[] = [
   },
 ];
 
+export interface PaymentOrderRecord {
+  id: string;
+  userId: string;
+  plan: string;
+  billingCycle: "monthly" | "yearly";
+  amount: number;
+  currency: string;
+  status: "created" | "paid" | "failed";
+  razorpayOrderId: string;
+  razorpayPaymentId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export class RepositoryStore {
   private supabase: SupabaseClient | null = null;
 
-  // In-Memory Multi-Tenant Store (Used for offline dev, unit tests, or as seamless fallback)
+  // In-Memory Multi-Tenant Store (Used for offline dev / demo mode / unit tests)
   private profiles = new Map<string, MasterCareerProfile>();
   private resumes = new Map<string, Resume>();
   private versions: ResumeVersion[] = [];
@@ -177,28 +219,29 @@ export class RepositoryStore {
   private coverLetters = new Map<string, CoverLetter>();
   private interviewSessions = new Map<string, InterviewSession>();
   private subscriptions = new Map<string, Subscription>();
+  private orders = new Map<string, PaymentOrderRecord>();
 
   constructor() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (url && key && !url.includes("your-project")) {
+    if (url && key && !url.includes("your-project") && key !== "your-anon-key") {
       try {
         this.supabase = createClient(url, key, {
-          auth: { persistSession: false },
+          auth: { persistSession: false, autoRefreshToken: false },
         });
       } catch (err) {
-        console.warn("Could not connect to Supabase, using multi-tenant in-memory repository:", err);
+        console.warn("Could not connect to Supabase, fallback to memory store:", err);
       }
     }
 
-    // Seed default tenant in-memory store
-    this.profiles.set("user-default", { ...SEED_PROFILE, userId: "user-default" });
+    // Seed demo tenant in-memory store
+    this.profiles.set(DEMO_USER_ID, { ...SEED_PROFILE, userId: DEMO_USER_ID });
     this.resumes.set(SEED_RESUME.id, { ...SEED_RESUME });
     this.versions = [...SEED_VERSIONS];
-    this.subscriptions.set("user-default", {
+    this.subscriptions.set(DEMO_USER_ID, {
       id: "sub-001",
-      userId: "user-default",
+      userId: DEMO_USER_ID,
       plan: "free",
       status: "active",
       createdAt: SEED_DATE,
@@ -206,29 +249,15 @@ export class RepositoryStore {
     });
   }
 
-  /**
-   * Centralized database error handler.
-   * Gracefully handles Postgrest errors (like RLS 42501 for unauthenticated demo sessions)
-   * without polluting server console with empty error objects or causing Next.js dev crashes.
-   */
   private logDbError(operation: string, error: unknown) {
     if (!error) return;
     const postgrestErr = error as { code?: string; message?: string; details?: string; hint?: string };
-
-    // RLS Policy notice (code 42501) for unauthenticated guest / demo sessions
-    if (postgrestErr.code === "42501") {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(`[Karyvo DB] ${operation} skipped remote sync (RLS active for anon key). Data preserved in local memory.`);
-      }
-      return;
-    }
-
     const message =
       postgrestErr.message ||
       postgrestErr.details ||
       postgrestErr.code ||
       (error instanceof Error ? error.message : JSON.stringify(error));
-    console.error(`[Karyvo DB] ${operation} error:`, message);
+    console.error(`[Karyvo DB Error] ${operation}:`, message);
   }
 
   // ==========================================
@@ -236,55 +265,65 @@ export class RepositoryStore {
   // ==========================================
   async getProfile(userId: string): Promise<MasterCareerProfile> {
     if (this.supabase) {
-      try {
-        const { data, error } = await this.supabase
-          .from("profiles")
-          .select("*")
-          .eq("user_id", userId)
-          .single();
+      const { data, error } = await this.supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-        if (data && !error) {
-          return {
-            userId: data.user_id,
-            fullName: data.full_name || "",
-            email: data.email || "",
-            phone: data.phone || "",
-            location: data.location || "",
-            linkedinUrl: data.linkedin_url || "",
-            githubUrl: data.github_url || "",
-            portfolioUrl: data.portfolio_url || "",
-            summary: data.summary || "",
-            isFresherMode: Boolean(data.is_fresher_mode),
-            education: data.education || [],
-            experience: data.experience || [],
-            projects: data.projects || [],
-            skills: data.skills || { technical: [], frameworks: [], tools: [], soft: [] },
-            certifications: data.certifications || [],
-            achievements: data.achievements || [],
-            currentCtc: data.current_ctc || "",
-            expectedCtc: data.expected_ctc || "",
-            noticePeriod: data.notice_period || "",
-            preferredLocation: data.preferred_location || "",
-            workMode: data.work_mode || "Remote",
-            createdAt: data.created_at,
-            updatedAt: data.updated_at,
-          };
-        }
-      } catch (err) {
-        this.logDbError("getProfile", err);
+      if (error) {
+        this.logDbError("getProfile", error);
+        throw new Error(`Database error retrieving profile: ${error.message}`);
       }
+
+      if (data) {
+        return {
+          userId: data.user_id,
+          fullName: data.full_name || "",
+          email: data.email || "",
+          phone: data.phone || "",
+          location: data.location || "",
+          linkedinUrl: data.linkedin_url || "",
+          githubUrl: data.github_url || "",
+          portfolioUrl: data.portfolio_url || "",
+          summary: data.summary || "",
+          isFresherMode: Boolean(data.is_fresher_mode),
+          education: data.education || [],
+          experience: data.experience || [],
+          projects: data.projects || [],
+          skills: data.skills || { technical: [], frameworks: [], tools: [], soft: [] },
+          certifications: data.certifications || [],
+          achievements: data.achievements || [],
+          currentCtc: data.current_ctc || "",
+          expectedCtc: data.expected_ctc || "",
+          noticePeriod: data.notice_period || "",
+          preferredLocation: data.preferred_location || "",
+          workMode: data.work_mode || "Remote",
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+        };
+      }
+
+      // New user with no profile record in DB gets an empty profile (NOT fictional seed profile!)
+      if (isDemoMode() || userId === DEMO_USER_ID) {
+        return { ...SEED_PROFILE, userId };
+      }
+      return createEmptyProfile(userId);
     }
 
-    // Fallback to in-memory store
+    // In-memory fallback (only when Supabase credentials are absent)
     let profile = this.profiles.get(userId);
     if (!profile) {
-      profile = { ...SEED_PROFILE, userId };
+      if (isDemoMode() || userId === DEMO_USER_ID) {
+        profile = { ...SEED_PROFILE, userId };
+      } else {
+        profile = createEmptyProfile(userId);
+      }
       this.profiles.set(userId, profile);
     }
     return profile;
   }
 
-  // M9: Guard userId and internal timestamps against client overwrite
   async saveProfile(userId: string, data: MasterCareerProfile): Promise<MasterCareerProfile> {
     const now = new Date().toISOString();
     const sanitized: MasterCareerProfile = {
@@ -294,38 +333,38 @@ export class RepositoryStore {
     };
 
     if (this.supabase) {
-      try {
-        const { error } = await this.supabase.from("profiles").upsert(
-          {
-            user_id: userId,
-            full_name: sanitized.fullName,
-            email: sanitized.email,
-            phone: sanitized.phone,
-            location: sanitized.location,
-            linkedin_url: sanitized.linkedinUrl,
-            github_url: sanitized.githubUrl,
-            portfolio_url: sanitized.portfolioUrl,
-            summary: sanitized.summary,
-            is_fresher_mode: sanitized.isFresherMode,
-            education: sanitized.education,
-            experience: sanitized.experience,
-            projects: sanitized.projects,
-            skills: sanitized.skills,
-            certifications: sanitized.certifications,
-            achievements: sanitized.achievements,
-            current_ctc: sanitized.currentCtc,
-            expected_ctc: sanitized.expectedCtc,
-            notice_period: sanitized.noticePeriod,
-            preferred_location: sanitized.preferredLocation,
-            work_mode: sanitized.workMode,
-            updated_at: now,
-          },
-          { onConflict: "user_id" }
-        );
-        if (error) this.logDbError("saveProfile", error);
-      } catch (err) {
-        this.logDbError("saveProfile", err);
+      const { error } = await this.supabase.from("profiles").upsert(
+        {
+          user_id: userId,
+          full_name: sanitized.fullName,
+          email: sanitized.email,
+          phone: sanitized.phone,
+          location: sanitized.location,
+          linkedin_url: sanitized.linkedinUrl,
+          github_url: sanitized.githubUrl,
+          portfolio_url: sanitized.portfolioUrl,
+          summary: sanitized.summary,
+          is_fresher_mode: sanitized.isFresherMode,
+          education: sanitized.education,
+          experience: sanitized.experience,
+          projects: sanitized.projects,
+          skills: sanitized.skills,
+          certifications: sanitized.certifications,
+          achievements: sanitized.achievements,
+          current_ctc: sanitized.currentCtc,
+          expected_ctc: sanitized.expectedCtc,
+          notice_period: sanitized.noticePeriod,
+          preferred_location: sanitized.preferredLocation,
+          work_mode: sanitized.workMode,
+          updated_at: now,
+        },
+        { onConflict: "user_id" }
+      );
+      if (error) {
+        this.logDbError("saveProfile", error);
+        throw new Error(`Database error saving profile: ${error.message}`);
       }
+      return sanitized;
     }
 
     this.profiles.set(userId, sanitized);
@@ -337,127 +376,73 @@ export class RepositoryStore {
   // ==========================================
   async getResumes(userId: string): Promise<Resume[]> {
     if (this.supabase) {
-      try {
-        const { data, error } = await this.supabase
-          .from("resumes")
-          .select("*")
-          .eq("user_id", userId)
-          .order("updated_at", { ascending: false });
+      const { data, error } = await this.supabase
+        .from("resumes")
+        .select("*")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false });
 
-        if (data && !error && data.length > 0) {
-          return data.map((r) => ({
-            id: r.id,
-            userId: r.user_id,
-            title: r.title,
-            targetRole: r.target_role,
-            templateId: r.template_id,
-            content: r.content,
-            isPrimary: r.is_primary,
-            createdAt: r.created_at,
-            updatedAt: r.updated_at,
-          }));
-        }
-
-        // Check if we already have it in memory before re-creating
-        const cachedResumes = Array.from(this.resumes.values()).filter((r) => r.userId === userId);
-        if (cachedResumes.length > 0) return cachedResumes;
-
-        // If no resumes in Supabase or memory for user, seed initial resume from profile
-        const profile = await this.getProfile(userId);
-        const defaultResume: Resume = {
-          id: `res-${userId}-01`,
-          userId,
-          title: `${profile.fullName || "Engineer"} Resume (Standard)`,
-          targetRole: profile.experience?.[0]?.role || "Software Engineer",
-          templateId: "modern-tech",
-          isPrimary: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          content: {
-            personal: {
-              fullName: profile.fullName || "",
-              email: profile.email || "",
-              phone: profile.phone || "",
-              location: profile.location || "",
-              linkedinUrl: profile.linkedinUrl || "",
-              githubUrl: profile.githubUrl || "",
-              portfolioUrl: profile.portfolioUrl || "",
-              summary: profile.summary || "",
-            },
-            education: profile.education || [],
-            experience: profile.experience || [],
-            projects: profile.projects || [],
-            skills: profile.skills || { technical: [], frameworks: [], tools: [], soft: [] },
-            certifications: profile.certifications || [],
-            achievements: profile.achievements || [],
-          },
-        };
-
-        await this.saveResume(defaultResume);
-        return [defaultResume];
-      } catch (err) {
-        this.logDbError("getResumes", err);
+      if (error) {
+        this.logDbError("getResumes", error);
+        throw new Error(`Database error fetching resumes: ${error.message}`);
       }
+
+      if (data && data.length > 0) {
+        return data.map((r) => ({
+          id: r.id,
+          userId: r.user_id,
+          title: r.title,
+          targetRole: r.target_role,
+          templateId: r.template_id,
+          content: r.content,
+          isPrimary: r.is_primary,
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+        }));
+      }
+
+      if (isDemoMode() || userId === DEMO_USER_ID) {
+        return [{ ...SEED_RESUME, userId }];
+      }
+      return [];
     }
 
     const memoryResumes = Array.from(this.resumes.values()).filter((r) => r.userId === userId);
     if (memoryResumes.length > 0) return memoryResumes;
 
-    const profile = await this.getProfile(userId);
-    const defaultResume: Resume = {
-      id: `res-${userId}-01`,
-      userId,
-      title: `${profile.fullName || "Engineer"} Resume (Standard)`,
-      targetRole: profile.experience?.[0]?.role || "Software Engineer",
-      templateId: "modern-tech",
-      isPrimary: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      content: {
-        personal: {
-          fullName: profile.fullName || "",
-          email: profile.email || "",
-          phone: profile.phone || "",
-          location: profile.location || "",
-          linkedinUrl: profile.linkedinUrl || "",
-          githubUrl: profile.githubUrl || "",
-          portfolioUrl: profile.portfolioUrl || "",
-          summary: profile.summary || "",
-        },
-        education: profile.education || [],
-        experience: profile.experience || [],
-        projects: profile.projects || [],
-        skills: profile.skills || { technical: [], frameworks: [], tools: [], soft: [] },
-        certifications: profile.certifications || [],
-        achievements: profile.achievements || [],
-      },
-    };
-    this.resumes.set(defaultResume.id, defaultResume);
-    return [defaultResume];
+    if (isDemoMode() || userId === DEMO_USER_ID) {
+      const defaultResume = { ...SEED_RESUME, userId };
+      this.resumes.set(defaultResume.id, defaultResume);
+      return [defaultResume];
+    }
+    return [];
   }
 
   async getResumeById(id: string, userId?: string): Promise<Resume | undefined> {
     if (this.supabase) {
-      try {
-        let query = this.supabase.from("resumes").select("*").eq("id", id);
-        if (userId) query = query.eq("user_id", userId);
-        const { data, error } = await query.single();
-        if (data && !error) {
-          return {
-            id: data.id,
-            userId: data.user_id,
-            title: data.title,
-            targetRole: data.target_role,
-            templateId: data.template_id,
-            content: data.content,
-            isPrimary: data.is_primary,
-            createdAt: data.created_at,
-            updatedAt: data.updated_at,
-          };
-        }
-      } catch (err) {
-        this.logDbError("getResumeById", err);
+      let query = this.supabase.from("resumes").select("*").eq("id", id);
+      if (userId) query = query.eq("user_id", userId);
+      const { data, error } = await query.maybeSingle();
+
+      if (error) {
+        this.logDbError("getResumeById", error);
+        throw new Error(`Database error in getResumeById: ${error.message}`);
       }
+
+      if (data) {
+        return {
+          id: data.id,
+          userId: data.user_id,
+          title: data.title,
+          targetRole: data.target_role,
+          templateId: data.template_id,
+          content: data.content,
+          isPrimary: data.is_primary,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+        };
+      }
+      return undefined;
     }
 
     const resume = this.resumes.get(id);
@@ -475,45 +460,83 @@ export class RepositoryStore {
     };
 
     if (this.supabase) {
-      try {
-        const { error } = await this.supabase.from("resumes").upsert(
-          {
-            id: updated.id,
-            user_id: updated.userId,
+      // Check existing resume to prevent ID overwrite / takeover across users (High #6)
+      const { data: existing, error: checkError } = await this.supabase
+        .from("resumes")
+        .select("id, user_id")
+        .eq("id", updated.id)
+        .maybeSingle();
+
+      if (checkError) {
+        this.logDbError("saveResume:check", checkError);
+        throw new Error(`Database error verifying resume: ${checkError.message}`);
+      }
+
+      if (existing) {
+        if (existing.user_id !== updated.userId) {
+          throw new Error("Unauthorized: Resume belongs to another user");
+        }
+        const { error: updateError } = await this.supabase
+          .from("resumes")
+          .update({
             title: updated.title,
             target_role: updated.targetRole,
             template_id: updated.templateId,
             content: updated.content,
             is_primary: updated.isPrimary,
-            created_at: updated.createdAt,
             updated_at: updated.updatedAt,
-          },
-          { onConflict: "id" }
-        );
-        if (error) this.logDbError("saveResume", error);
-      } catch (err) {
-        this.logDbError("saveResume", err);
+          })
+          .eq("id", updated.id)
+          .eq("user_id", updated.userId);
+
+        if (updateError) {
+          this.logDbError("saveResume:update", updateError);
+          throw new Error(`Database error updating resume: ${updateError.message}`);
+        }
+      } else {
+        const { error: insertError } = await this.supabase.from("resumes").insert({
+          id: updated.id,
+          user_id: updated.userId,
+          title: updated.title,
+          target_role: updated.targetRole,
+          template_id: updated.templateId,
+          content: updated.content,
+          is_primary: updated.isPrimary,
+          created_at: updated.createdAt,
+          updated_at: updated.updatedAt,
+        });
+
+        if (insertError) {
+          this.logDbError("saveResume:insert", insertError);
+          throw new Error(`Database error creating resume: ${insertError.message}`);
+        }
       }
+
+      return updated;
     }
 
     this.resumes.set(updated.id, updated);
     return updated;
   }
 
-  // L4: Delete resume scoped by owner userId
   async deleteResume(id: string, userId: string): Promise<boolean> {
-    const resume = await this.getResumeById(id, userId);
-    if (!resume) return false;
-
     if (this.supabase) {
-      try {
-        const { error } = await this.supabase.from("resumes").delete().eq("id", id).eq("user_id", userId);
-        if (error) this.logDbError("deleteResume", error);
-      } catch (err) {
-        this.logDbError("deleteResume", err);
+      const { data, error } = await this.supabase
+        .from("resumes")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId)
+        .select("id");
+
+      if (error) {
+        this.logDbError("deleteResume", error);
+        throw new Error(`Database error deleting resume: ${error.message}`);
       }
+      return Boolean(data && data.length > 0);
     }
 
+    const resume = this.resumes.get(id);
+    if (!resume || resume.userId !== userId) return false;
     this.resumes.delete(id);
     this.versions = this.versions.filter((v) => v.resumeId !== id);
     return true;
@@ -524,29 +547,30 @@ export class RepositoryStore {
   // ==========================================
   async getVersionsByResumeId(resumeId: string, userId?: string): Promise<ResumeVersion[]> {
     if (this.supabase) {
-      try {
-        let query = this.supabase
-          .from("resume_versions")
-          .select("*")
-          .eq("resume_id", resumeId)
-          .order("version_number", { ascending: false });
-        if (userId) query = query.eq("user_id", userId);
-        const { data, error } = await query;
-        if (data && !error) {
-          return data.map((v) => ({
-            id: v.id,
-            resumeId: v.resume_id,
-            userId: v.user_id,
-            versionNumber: v.version_number,
-            versionLabel: v.version_label,
-            changeSummary: v.change_summary,
-            snapshot: v.snapshot,
-            createdAt: v.created_at,
-          }));
-        }
-      } catch (err) {
-        this.logDbError("getVersionsByResumeId", err);
+      let query = this.supabase
+        .from("resume_versions")
+        .select("*")
+        .eq("resume_id", resumeId)
+        .order("version_number", { ascending: false });
+      if (userId) query = query.eq("user_id", userId);
+      const { data, error } = await query;
+      if (error) {
+        this.logDbError("getVersionsByResumeId", error);
+        throw new Error(`Database error fetching versions: ${error.message}`);
       }
+      if (data) {
+        return data.map((v) => ({
+          id: v.id,
+          resumeId: v.resume_id,
+          userId: v.user_id,
+          versionNumber: v.version_number,
+          versionLabel: v.version_label,
+          changeSummary: v.change_summary,
+          snapshot: v.snapshot,
+          createdAt: v.created_at,
+        }));
+      }
+      return [];
     }
 
     return this.versions
@@ -562,28 +586,27 @@ export class RepositoryStore {
     };
 
     if (this.supabase) {
-      try {
-        const { error } = await this.supabase.from("resume_versions").insert({
-          id: newVersion.id,
-          resume_id: newVersion.resumeId,
-          user_id: newVersion.userId,
-          version_number: newVersion.versionNumber,
-          version_label: newVersion.versionLabel,
-          change_summary: newVersion.changeSummary,
-          snapshot: newVersion.snapshot,
-          created_at: newVersion.createdAt,
-        });
-        if (error) this.logDbError("createVersion", error);
-      } catch (err) {
-        this.logDbError("createVersion", err);
+      const { error } = await this.supabase.from("resume_versions").insert({
+        id: newVersion.id,
+        resume_id: newVersion.resumeId,
+        user_id: newVersion.userId,
+        version_number: newVersion.versionNumber,
+        version_label: newVersion.versionLabel,
+        change_summary: newVersion.changeSummary,
+        snapshot: newVersion.snapshot,
+        created_at: newVersion.createdAt,
+      });
+      if (error) {
+        this.logDbError("createVersion", error);
+        throw new Error(`Database error creating version: ${error.message}`);
       }
+      return newVersion;
     }
 
     this.versions.push(newVersion);
     return newVersion;
   }
 
-  // M6: Scoped version restore validating ownership
   async restoreVersion(versionId: string, resumeId: string, userId: string): Promise<Resume | null> {
     const resume = await this.getResumeById(resumeId, userId);
     if (!resume) return null;
@@ -612,26 +635,26 @@ export class RepositoryStore {
     };
 
     if (this.supabase) {
-      try {
-        const { error } = await this.supabase.from("ats_scans").upsert({
-          id: finalizedScan.id,
-          user_id: userId,
-          resume_id: finalizedScan.resumeId,
-          resume_name: finalizedScan.resumeName,
-          overall_score: finalizedScan.overallScore,
-          formatting_score: finalizedScan.formattingScore,
-          completeness_score: finalizedScan.completenessScore,
-          keyword_strength_score: finalizedScan.keywordStrengthScore,
-          quantification_score: finalizedScan.quantificationScore,
-          strengths: finalizedScan.strengths,
-          issues: finalizedScan.issues,
-          actionable_fixes: finalizedScan.actionableFixes,
-          scanned_at: finalizedScan.scannedAt,
-        });
-        if (error) this.logDbError("saveATSScan", error);
-      } catch (err) {
-        this.logDbError("saveATSScan", err);
+      const { error } = await this.supabase.from("ats_scans").upsert({
+        id: finalizedScan.id,
+        user_id: userId,
+        resume_id: finalizedScan.resumeId,
+        resume_name: finalizedScan.resumeName,
+        overall_score: finalizedScan.overallScore,
+        formatting_score: finalizedScan.formattingScore,
+        completeness_score: finalizedScan.completenessScore,
+        keyword_strength_score: finalizedScan.keywordStrengthScore,
+        quantification_score: finalizedScan.quantificationScore,
+        strengths: finalizedScan.strengths,
+        issues: finalizedScan.issues,
+        actionable_fixes: finalizedScan.actionableFixes,
+        scanned_at: finalizedScan.scannedAt,
+      });
+      if (error) {
+        this.logDbError("saveATSScan", error);
+        throw new Error(`Database error saving ATS scan: ${error.message}`);
       }
+      return finalizedScan;
     }
 
     this.atsScans.set(finalizedScan.id, finalizedScan);
@@ -640,32 +663,35 @@ export class RepositoryStore {
 
   async getATSScans(userId: string): Promise<ATSScanResult[]> {
     if (this.supabase) {
-      try {
-        const { data, error } = await this.supabase
-          .from("ats_scans")
-          .select("*")
-          .eq("user_id", userId)
-          .order("scanned_at", { ascending: false });
-        if (data && !error) {
-          return data.map((s) => ({
-            id: s.id,
-            userId: s.user_id,
-            resumeId: s.resume_id,
-            resumeName: s.resume_name,
-            overallScore: s.overall_score,
-            formattingScore: s.formatting_score,
-            completenessScore: s.completeness_score,
-            keywordStrengthScore: s.keyword_strength_score,
-            quantificationScore: s.quantification_score,
-            strengths: s.strengths || [],
-            issues: s.issues || [],
-            actionableFixes: s.actionable_fixes || [],
-            scannedAt: s.scanned_at,
-          }));
-        }
-      } catch (err) {
-        this.logDbError("getATSScans", err);
+      const { data, error } = await this.supabase
+        .from("ats_scans")
+        .select("*")
+        .eq("user_id", userId)
+        .order("scanned_at", { ascending: false });
+
+      if (error) {
+        this.logDbError("getATSScans", error);
+        throw new Error(`Database error fetching ATS scans: ${error.message}`);
       }
+
+      if (data) {
+        return data.map((s) => ({
+          id: s.id,
+          userId: s.user_id,
+          resumeId: s.resume_id,
+          resumeName: s.resume_name,
+          overallScore: s.overall_score,
+          formattingScore: s.formatting_score,
+          completenessScore: s.completeness_score,
+          keywordStrengthScore: s.keyword_strength_score,
+          quantificationScore: s.quantification_score,
+          strengths: s.strengths || [],
+          issues: s.issues || [],
+          actionableFixes: s.actionable_fixes || [],
+          scannedAt: s.scanned_at,
+        }));
+      }
+      return [];
     }
 
     return Array.from(this.atsScans.values())
@@ -674,16 +700,22 @@ export class RepositoryStore {
   }
 
   async deleteATSScan(id: string, userId: string): Promise<boolean> {
-    const scan = this.atsScans.get(id);
     if (this.supabase) {
-      try {
-        const { error } = await this.supabase.from("ats_scans").delete().eq("id", id).eq("user_id", userId);
-        if (error) this.logDbError("deleteATSScan", error);
-      } catch (err) {
-        this.logDbError("deleteATSScan", err);
+      const { data, error } = await this.supabase
+        .from("ats_scans")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId)
+        .select("id");
+
+      if (error) {
+        this.logDbError("deleteATSScan", error);
+        throw new Error(`Database error deleting ATS scan: ${error.message}`);
       }
+      return Boolean(data && data.length > 0);
     }
 
+    const scan = this.atsScans.get(id);
     if (scan && scan.userId === userId) {
       this.atsScans.delete(id);
       return true;
@@ -695,53 +727,63 @@ export class RepositoryStore {
   // COVER LETTERS (Multi-Tenant)
   // ==========================================
   async saveCoverLetter(letter: CoverLetter): Promise<CoverLetter> {
+    const finalized: CoverLetter = {
+      ...letter,
+      id: letter.id || `cl-${crypto.randomUUID()}`,
+      createdAt: letter.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
     if (this.supabase) {
-      try {
-        const { error } = await this.supabase.from("cover_letters").upsert({
-          id: letter.id,
-          user_id: letter.userId,
-          resume_id: letter.resumeId,
-          company_name: letter.companyName,
-          target_role: letter.targetRole,
-          tone: letter.tone,
-          content: letter.content,
-          created_at: letter.createdAt,
-          updated_at: letter.updatedAt,
-        });
-        if (error) this.logDbError("saveCoverLetter", error);
-      } catch (err) {
-        this.logDbError("saveCoverLetter", err);
+      const { error } = await this.supabase.from("cover_letters").upsert({
+        id: finalized.id,
+        user_id: finalized.userId,
+        resume_id: finalized.resumeId,
+        company_name: finalized.companyName,
+        target_role: finalized.targetRole,
+        tone: finalized.tone,
+        content: finalized.content,
+        created_at: finalized.createdAt,
+        updated_at: finalized.updatedAt,
+      });
+      if (error) {
+        this.logDbError("saveCoverLetter", error);
+        throw new Error(`Database error saving cover letter: ${error.message}`);
       }
+      return finalized;
     }
 
-    this.coverLetters.set(letter.id, letter);
-    return letter;
+    this.coverLetters.set(finalized.id, finalized);
+    return finalized;
   }
 
   async getCoverLetters(userId: string): Promise<CoverLetter[]> {
     if (this.supabase) {
-      try {
-        const { data, error } = await this.supabase
-          .from("cover_letters")
-          .select("*")
-          .eq("user_id", userId)
-          .order("updated_at", { ascending: false });
-        if (data && !error) {
-          return data.map((l) => ({
-            id: l.id,
-            userId: l.user_id,
-            resumeId: l.resume_id,
-            companyName: l.company_name,
-            targetRole: l.target_role,
-            tone: l.tone,
-            content: l.content,
-            createdAt: l.created_at,
-            updatedAt: l.updated_at,
-          }));
-        }
-      } catch (err) {
-        this.logDbError("getCoverLetters", err);
+      const { data, error } = await this.supabase
+        .from("cover_letters")
+        .select("*")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false });
+
+      if (error) {
+        this.logDbError("getCoverLetters", error);
+        throw new Error(`Database error fetching cover letters: ${error.message}`);
       }
+
+      if (data) {
+        return data.map((l) => ({
+          id: l.id,
+          userId: l.user_id,
+          resumeId: l.resume_id,
+          companyName: l.company_name,
+          targetRole: l.target_role,
+          tone: l.tone,
+          content: l.content,
+          createdAt: l.created_at,
+          updatedAt: l.updated_at,
+        }));
+      }
+      return [];
     }
 
     return Array.from(this.coverLetters.values())
@@ -750,16 +792,22 @@ export class RepositoryStore {
   }
 
   async deleteCoverLetter(id: string, userId: string): Promise<boolean> {
-    const letter = this.coverLetters.get(id);
     if (this.supabase) {
-      try {
-        const { error } = await this.supabase.from("cover_letters").delete().eq("id", id).eq("user_id", userId);
-        if (error) this.logDbError("deleteCoverLetter", error);
-      } catch (err) {
-        this.logDbError("deleteCoverLetter", err);
+      const { data, error } = await this.supabase
+        .from("cover_letters")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId)
+        .select("id");
+
+      if (error) {
+        this.logDbError("deleteCoverLetter", error);
+        throw new Error(`Database error deleting cover letter: ${error.message}`);
       }
+      return Boolean(data && data.length > 0);
     }
 
+    const letter = this.coverLetters.get(id);
     if (letter && letter.userId === userId) {
       this.coverLetters.delete(id);
       return true;
@@ -774,21 +822,21 @@ export class RepositoryStore {
     const cloned = structuredClone(session);
 
     if (this.supabase) {
-      try {
-        const { error } = await this.supabase.from("interview_sessions").upsert({
-          id: cloned.id,
-          user_id: cloned.userId,
-          target_role: cloned.targetRole,
-          status: cloned.status,
-          overall_score: cloned.overallScore,
-          questions: cloned.questions,
-          created_at: cloned.createdAt,
-          updated_at: cloned.updatedAt,
-        });
-        if (error) this.logDbError("saveInterviewSession", error);
-      } catch (err) {
-        this.logDbError("saveInterviewSession", err);
+      const { error } = await this.supabase.from("interview_sessions").upsert({
+        id: cloned.id,
+        user_id: cloned.userId,
+        target_role: cloned.targetRole,
+        status: cloned.status,
+        overall_score: cloned.overallScore,
+        questions: cloned.questions,
+        created_at: cloned.createdAt,
+        updated_at: cloned.updatedAt,
+      });
+      if (error) {
+        this.logDbError("saveInterviewSession", error);
+        throw new Error(`Database error saving interview session: ${error.message}`);
       }
+      return cloned;
     }
 
     this.interviewSessions.set(cloned.id, cloned);
@@ -797,27 +845,30 @@ export class RepositoryStore {
 
   async getInterviewSessions(userId: string): Promise<InterviewSession[]> {
     if (this.supabase) {
-      try {
-        const { data, error } = await this.supabase
-          .from("interview_sessions")
-          .select("*")
-          .eq("user_id", userId)
-          .order("updated_at", { ascending: false });
-        if (data && !error) {
-          return data.map((s) => ({
-            id: s.id,
-            userId: s.user_id,
-            targetRole: s.target_role,
-            status: s.status,
-            overallScore: s.overall_score,
-            questions: s.questions,
-            createdAt: s.created_at,
-            updatedAt: s.updated_at,
-          }));
-        }
-      } catch (err) {
-        this.logDbError("getInterviewSessions", err);
+      const { data, error } = await this.supabase
+        .from("interview_sessions")
+        .select("*")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false });
+
+      if (error) {
+        this.logDbError("getInterviewSessions", error);
+        throw new Error(`Database error fetching interview sessions: ${error.message}`);
       }
+
+      if (data) {
+        return data.map((s) => ({
+          id: s.id,
+          userId: s.user_id,
+          targetRole: s.target_role,
+          status: s.status,
+          overallScore: s.overall_score,
+          questions: s.questions,
+          createdAt: s.created_at,
+          updatedAt: s.updated_at,
+        }));
+      }
+      return [];
     }
 
     return Array.from(this.interviewSessions.values())
@@ -827,28 +878,31 @@ export class RepositoryStore {
 
   async getInterviewSessionById(id: string, userId: string): Promise<InterviewSession | undefined> {
     if (this.supabase) {
-      try {
-        const { data, error } = await this.supabase
-          .from("interview_sessions")
-          .select("*")
-          .eq("id", id)
-          .eq("user_id", userId)
-          .single();
-        if (data && !error) {
-          return {
-            id: data.id,
-            userId: data.user_id,
-            targetRole: data.target_role,
-            status: data.status,
-            overallScore: data.overall_score,
-            questions: data.questions,
-            createdAt: data.created_at,
-            updatedAt: data.updated_at,
-          };
-        }
-      } catch (err) {
-        this.logDbError("getInterviewSessionById", err);
+      const { data, error } = await this.supabase
+        .from("interview_sessions")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) {
+        this.logDbError("getInterviewSessionById", error);
+        throw new Error(`Database error in getInterviewSessionById: ${error.message}`);
       }
+
+      if (data) {
+        return {
+          id: data.id,
+          userId: data.user_id,
+          targetRole: data.target_role,
+          status: data.status,
+          overallScore: data.overall_score,
+          questions: data.questions,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+        };
+      }
+      return undefined;
     }
 
     const session = this.interviewSessions.get(id);
@@ -857,16 +911,22 @@ export class RepositoryStore {
   }
 
   async deleteInterviewSession(id: string, userId: string): Promise<boolean> {
-    const session = this.interviewSessions.get(id);
     if (this.supabase) {
-      try {
-        const { error } = await this.supabase.from("interview_sessions").delete().eq("id", id).eq("user_id", userId);
-        if (error) this.logDbError("deleteInterviewSession", error);
-      } catch (err) {
-        this.logDbError("deleteInterviewSession", err);
+      const { data, error } = await this.supabase
+        .from("interview_sessions")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId)
+        .select("id");
+
+      if (error) {
+        this.logDbError("deleteInterviewSession", error);
+        throw new Error(`Database error deleting interview session: ${error.message}`);
       }
+      return Boolean(data && data.length > 0);
     }
 
+    const session = this.interviewSessions.get(id);
     if (session && session.userId === userId) {
       this.interviewSessions.delete(id);
       return true;
@@ -879,28 +939,30 @@ export class RepositoryStore {
   // ==========================================
   async getSubscription(userId: string): Promise<Subscription> {
     if (this.supabase) {
-      try {
-        const { data, error } = await this.supabase
-          .from("subscriptions")
-          .select("*")
-          .eq("user_id", userId)
-          .single();
-        if (data && !error) {
-          return {
-            id: data.id,
-            userId: data.user_id,
-            plan: data.plan,
-            status: data.status,
-            billingCycle: data.billing_cycle,
-            paymentId: data.payment_id,
-            orderId: data.order_id,
-            currentPeriodEnd: data.current_period_end,
-            createdAt: data.created_at,
-            updatedAt: data.updated_at,
-          };
-        }
-      } catch (err) {
-        this.logDbError("getSubscription", err);
+      const { data, error } = await this.supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) {
+        this.logDbError("getSubscription", error);
+        throw new Error(`Database error fetching subscription: ${error.message}`);
+      }
+
+      if (data) {
+        return {
+          id: data.id,
+          userId: data.user_id,
+          plan: data.plan,
+          status: data.status,
+          billingCycle: data.billing_cycle,
+          paymentId: data.payment_id,
+          orderId: data.order_id,
+          currentPeriodEnd: data.current_period_end,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+        };
       }
     }
 
@@ -919,7 +981,6 @@ export class RepositoryStore {
     return sub;
   }
 
-  // H3: Complete payment recording with billing cycle, expiry date, and payment ID
   async upgradeToPro(
     userId: string,
     options?: {
@@ -946,24 +1007,23 @@ export class RepositoryStore {
     };
 
     if (this.supabase) {
-      try {
-        const { error } = await this.supabase.from("subscriptions").upsert(
-          {
-            id: updated.id,
-            user_id: userId,
-            plan: "pro",
-            status: "active",
-            billing_cycle: cycle,
-            payment_id: options?.paymentId,
-            order_id: options?.orderId,
-            current_period_end: expiresAt.toISOString(),
-            updated_at: now.toISOString(),
-          },
-          { onConflict: "user_id" }
-        );
-        if (error) this.logDbError("upgradeToPro", error);
-      } catch (err) {
-        this.logDbError("upgradeToPro", err);
+      const { error } = await this.supabase.from("subscriptions").upsert(
+        {
+          id: updated.id,
+          user_id: userId,
+          plan: "pro",
+          status: "active",
+          billing_cycle: cycle,
+          payment_id: options?.paymentId,
+          order_id: options?.orderId,
+          current_period_end: expiresAt.toISOString(),
+          updated_at: now.toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+      if (error) {
+        this.logDbError("upgradeToPro", error);
+        throw new Error(`Database error saving subscription upgrade: ${error.message}`);
       }
     }
 
@@ -971,7 +1031,6 @@ export class RepositoryStore {
     return updated;
   }
 
-  // L5: Cancel subscription
   async cancelSubscription(userId: string): Promise<Subscription> {
     const existing = await this.getSubscription(userId);
     const now = new Date().toISOString();
@@ -984,21 +1043,135 @@ export class RepositoryStore {
     };
 
     if (this.supabase) {
-      try {
-        const { error } = await this.supabase.from("subscriptions").update({
+      const { error } = await this.supabase
+        .from("subscriptions")
+        .update({
           plan: "free",
           status: "canceled",
           current_period_end: null,
           updated_at: now,
-        }).eq("user_id", userId);
-        if (error) this.logDbError("cancelSubscription", error);
-      } catch (err) {
-        this.logDbError("cancelSubscription", err);
+        })
+        .eq("user_id", userId);
+
+      if (error) {
+        this.logDbError("cancelSubscription", error);
+        throw new Error(`Database error canceling subscription: ${error.message}`);
       }
     }
 
     this.subscriptions.set(userId, updated);
     return updated;
+  }
+
+  // ==========================================
+  // ORDERS (Audit & Replay Protection)
+  // ==========================================
+  async createOrder(order: PaymentOrderRecord): Promise<PaymentOrderRecord> {
+    if (this.supabase) {
+      const { error } = await this.supabase.from("orders").insert({
+        id: order.id,
+        user_id: order.userId,
+        plan: order.plan,
+        billing_cycle: order.billingCycle,
+        amount: order.amount,
+        currency: order.currency,
+        status: order.status,
+        razorpay_order_id: order.razorpayOrderId,
+        created_at: order.createdAt,
+        updated_at: order.updatedAt,
+      });
+
+      if (error) {
+        this.logDbError("createOrder", error);
+        throw new Error(`Database error creating payment order: ${error.message}`);
+      }
+      return order;
+    }
+
+    this.orders.set(order.razorpayOrderId, order);
+    return order;
+  }
+
+  async getOrderByRazorpayId(razorpayOrderId: string): Promise<PaymentOrderRecord | null> {
+    if (this.supabase) {
+      const { data, error } = await this.supabase
+        .from("orders")
+        .select("*")
+        .eq("razorpay_order_id", razorpayOrderId)
+        .maybeSingle();
+
+      if (error) {
+        this.logDbError("getOrderByRazorpayId", error);
+        throw new Error(`Database error fetching order: ${error.message}`);
+      }
+
+      if (data) {
+        return {
+          id: data.id,
+          userId: data.user_id,
+          plan: data.plan,
+          billingCycle: data.billing_cycle,
+          amount: data.amount,
+          currency: data.currency,
+          status: data.status,
+          razorpayOrderId: data.razorpay_order_id,
+          razorpayPaymentId: data.razorpay_payment_id,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+        };
+      }
+      return null;
+    }
+
+    return this.orders.get(razorpayOrderId) || null;
+  }
+
+  async markOrderPaid(razorpayOrderId: string, paymentId: string): Promise<PaymentOrderRecord | null> {
+    const now = new Date().toISOString();
+    if (this.supabase) {
+      const { data, error } = await this.supabase
+        .from("orders")
+        .update({
+          status: "paid",
+          razorpay_payment_id: paymentId,
+          updated_at: now,
+        })
+        .eq("razorpay_order_id", razorpayOrderId)
+        .select("*")
+        .maybeSingle();
+
+      if (error) {
+        this.logDbError("markOrderPaid", error);
+        throw new Error(`Database error marking order paid: ${error.message}`);
+      }
+
+      if (data) {
+        return {
+          id: data.id,
+          userId: data.user_id,
+          plan: data.plan,
+          billingCycle: data.billing_cycle,
+          amount: data.amount,
+          currency: data.currency,
+          status: data.status,
+          razorpayOrderId: data.razorpay_order_id,
+          razorpayPaymentId: data.razorpay_payment_id,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+        };
+      }
+      return null;
+    }
+
+    const order = this.orders.get(razorpayOrderId);
+    if (order) {
+      order.status = "paid";
+      order.razorpayPaymentId = paymentId;
+      order.updatedAt = now;
+      this.orders.set(razorpayOrderId, order);
+      return order;
+    }
+    return null;
   }
 }
 

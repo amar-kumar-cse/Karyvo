@@ -319,12 +319,12 @@ export class ATSScannerService {
     // Overall composite score
     const overall = Math.round(fScore * 0.25 + cScore * 0.25 + kScore * 0.25 + qScore * 0.25);
 
-    // Verdict determination
-    let verdict = "Action Needed - Low ATS Readability";
+    // Verdict determination: Honest heuristic Resume Health Check
+    let verdict = "Needs Attention - Key Gaps Detected";
     if (overall >= 88) {
-      verdict = "Top 3% Corporate Elite - ATS Certified";
+      verdict = "Excellent Health - High ATS Compatibility";
     } else if (overall >= 75) {
-      verdict = "Interview Ready - High Pass Rate";
+      verdict = "Good Health - Ready for Review";
     } else if (overall >= 60) {
       verdict = "Borderline - Moderate Metric Gaps";
     }

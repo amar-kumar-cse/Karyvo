@@ -76,10 +76,15 @@ export function Footer() {
 
         <div className="pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
           <p>© {new Date().getFullYear()} Karyvo AI Builder. Built with pride for Indian engineers & professionals.</p>
-          <div className="flex items-center gap-1">
-            <span>Engineered with precision</span>
-            <Heart className="h-3.5 w-3.5 text-rose-500 fill-rose-500 mx-1" />
-            <span>for your career velocity.</span>
+          <div className="flex items-center gap-4">
+            <Link href="/privacy" className="text-slate-500 hover:text-indigo-600 transition-colors underline">
+              Privacy Policy & AI Transparency
+            </Link>
+            <div className="flex items-center gap-1">
+              <span>Engineered with precision</span>
+              <Heart className="h-3.5 w-3.5 text-rose-500 fill-rose-500 mx-1" />
+              <span>for your career velocity.</span>
+            </div>
           </div>
         </div>
       </div>

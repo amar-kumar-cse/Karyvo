@@ -3,7 +3,7 @@ import { CoverLetterTone } from "@/types/cover-letter";
 import { InterviewQuestionItem } from "@/types/interview";
 import { z } from "zod";
 
-// H1: Zod schema to validate AI response structure before trusting it
+// Zod schemas for AI response structure validation
 const BulletImprovementSchema = z.object({
   improved: z.string(),
   actionVerbUsed: z.string(),
@@ -11,16 +11,71 @@ const BulletImprovementSchema = z.object({
   explanation: z.string(),
 });
 
-export class KaryvoAIService {
-  private provider: "gemini" | "smart-engine";
+const InterviewQuestionsSchema = z.array(
+  z.object({
+    id: z.string(),
+    questionIndex: z.number(),
+    category: z.enum(["Technical", "Project", "HR", "Situational"]),
+    questionText: z.string(),
+    modelAnswer: z.string(),
+  })
+);
 
-  constructor() {
-    this.provider = process.env.GEMINI_API_KEY ? "gemini" : "smart-engine";
+const InterviewEvaluationSchema = z.object({
+  score: z.number().min(0).max(100),
+  feedbackStrengths: z.array(z.string()),
+  feedbackImprovements: z.array(z.string()),
+  betterAnswer: z.string(),
+});
+
+export class KaryvoAIService {
+  /**
+   * Helper to make robust, timeout-bounded calls to Google Gemini API
+   */
+  private async callGemini(prompt: string, expectJson = true): Promise<string | null> {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return null;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15_000);
+
+    try {
+      const res = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: expectJson ? { responseMimeType: "application/json" } : undefined,
+          }),
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        console.warn(`Gemini API returned status ${res.status}`);
+        return null;
+      }
+
+      const data = await res.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      console.error("Gemini API call error:", err);
+      return null;
+    }
   }
 
   /**
    * Improves a single bullet point using Google's XYZ formula:
    * "Accomplished [X], as measured by [Y], by doing [Z]"
+   * Strict Factual Grounding: Never hallucinates fake metrics or fabricated percentages.
    */
   async improveBullet(rawBullet: string, roleOrContext?: string): Promise<{
     improved: string;
@@ -31,14 +86,13 @@ export class KaryvoAIService {
     const trimmed = rawBullet.trim();
     if (!trimmed) {
       return {
-        improved: "Engineered scalable feature reducing response latency by 32% across peak traffic.",
+        improved: "Engineered scalable feature to enhance system throughput and operational stability.",
         actionVerbUsed: "Engineered",
-        quantificationAdded: true,
-        explanation: "Added high-impact action verb and measurable latency metric.",
+        quantificationAdded: false,
+        explanation: "Added high-impact action verb and clear engineering deliverable.",
       };
     }
 
-    // High impact verbs
     const powerVerbs = [
       "Architected",
       "Engineered",
@@ -51,53 +105,33 @@ export class KaryvoAIService {
     ];
     const selectedVerb = powerVerbs[Math.floor(Math.random() * powerVerbs.length)];
 
-    // If API key is available, call external model; otherwise use smart structural synthesis
-    if (process.env.GEMINI_API_KEY) {
-      try {
-        const prompt = `You are a Principal Technical Resume Coach. Transform this bullet point using Google's XYZ formula (Accomplished [X], measured by [Y], by doing [Z]).
-Do NOT invent fake company names or fake degrees.
-Return JSON with { "improved": "...", "actionVerbUsed": "...", "quantificationAdded": true, "explanation": "..." }
+    // 1. Try Real Gemini AI Call with Factual Grounding Constraints
+    const prompt = `You are a Principal Technical Resume Coach. Transform this resume bullet point using Google's XYZ formula (Accomplished [X], measured by [Y], by doing [Z]).
+CRITICAL FACTUAL GROUNDING RULES:
+1. Do NOT invent fake metrics, percentages, dollar amounts, company names, or statistics that were not present in the original bullet.
+2. If a metric was present, sharpen it. If no metric was present, articulate the concrete qualitative engineering result directly, or include a clear placeholder like "[X%]" if relevant.
+3. Return ONLY valid JSON with: { "improved": "...", "actionVerbUsed": "...", "quantificationAdded": boolean, "explanation": "..." }
+
 Original bullet: "${trimmed}"
 Role context: "${roleOrContext || "Software Engineer"}"`;
 
-        // M7: Use x-goog-api-key header instead of query param to avoid key in URL/logs
-        // AbortController with 15s timeout — AI calls must never hang indefinitely
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15_000);
-        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": process.env.GEMINI_API_KEY!,
-          },
-          signal: controller.signal,
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: "application/json" }
-          })
-        });
-        clearTimeout(timeoutId);
-        const data = await res.json();
-        const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (jsonText) {
-          const parsed = JSON.parse(jsonText);
-          // H1: Validate AI response shape with Zod before trusting it
-          const validated = BulletImprovementSchema.safeParse(parsed);
-          if (validated.success) {
-            return validated.data;
-          }
-          console.warn("AI response failed shape validation, falling back to smart engine.");
+    const rawJson = await this.callGemini(prompt, true);
+    if (rawJson) {
+      try {
+        const parsed = JSON.parse(rawJson);
+        const validated = BulletImprovementSchema.safeParse(parsed);
+        if (validated.success) {
+          return validated.data;
         }
-      } catch (err) {
-        console.error("External AI call error, falling back to smart engine:", err);
+      } catch (e) {
+        console.warn("Gemini bullet improvement parse failed, falling back to smart engine.");
       }
     }
 
-    // Smart deterministic structural improvement engine
+    // 2. Deterministic Fallback Engine (Factual & Honest — NO Fake Metrics)
     const cleanLower = trimmed.toLowerCase();
     let improvedBullet = trimmed;
 
-    // Check if starts with weak verb like "worked on", "responsible for", "helped", "did"
     const weakStarters = ["worked on", "responsible for", "helped in", "helped to", "handled", "was doing", "did", "made"];
     let replacedStarter = false;
 
@@ -114,36 +148,34 @@ Role context: "${roleOrContext || "Software Engineer"}"`;
       improvedBullet = `${selectedVerb} ${trimmed.charAt(0).toLowerCase() + trimmed.slice(1)}`;
     }
 
-    // Ensure quantified metric is present
+    // Preserve real metric if present, or append qualitative outcome (never invent fake numbers like 35%)
     const hasMetric = /\d+%|\d+x|\$\d+|₹\d+|\d+\+?\s*(users|ms|daily|transactions|queries|rps)/i.test(improvedBullet);
     let quantificationAdded = false;
 
     if (!hasMetric) {
       if (/latency|speed|performance|response time/i.test(improvedBullet)) {
-        improvedBullet += ", driving a 35% reduction in latency and boosting system throughput.";
-        quantificationAdded = true;
+        improvedBullet += ", resulting in enhanced response times and system throughput";
       } else if (/test|qa|bug|quality/i.test(improvedBullet)) {
-        improvedBullet += ", expanding automated test coverage by 40% and eliminating recurring production regressions.";
-        quantificationAdded = true;
+        improvedBullet += ", expanding test coverage and preventing production regressions";
       } else if (/cost|cloud|aws|server|infra/i.test(improvedBullet)) {
-        improvedBullet += ", slashing cloud infrastructure expenditure by 22% through automated resource de-allocation.";
-        quantificationAdded = true;
+        improvedBullet += ", optimizing cloud infrastructure and automated resource allocation";
       } else {
-        improvedBullet += ", elevating user engagement by 28% and ensuring 99.9% operational reliability.";
-        quantificationAdded = true;
+        improvedBullet += ", elevating system reliability and operational efficiency";
       }
+    } else {
+      quantificationAdded = true;
     }
 
     return {
       improved: improvedBullet.replace(/\.$/, "") + ".",
       actionVerbUsed: selectedVerb,
       quantificationAdded,
-      explanation: "Restructured with high-impact action verb and quantifiable business/engineering outcome.",
+      explanation: "Restructured with high-impact action verb and clear engineering deliverable.",
     };
   }
 
   /**
-   * M1: Calculate years of experience from profile data instead of hardcoding
+   * Calculate years of experience from profile data
    */
   private calculateYearsOfExperience(profile: MasterCareerProfile): string {
     if (profile.isFresherMode || !profile.experience?.length) {
@@ -154,7 +186,6 @@ Role context: "${roleOrContext || "Software Engineer"}"`;
     let earliestStartYear = now.getFullYear();
 
     for (const exp of profile.experience) {
-      // Parse start date like "July 2022" or "Jan 2022"
       const match = exp.startDate?.match(/(\d{4})/);
       if (match) {
         const year = parseInt(match[1], 10);
@@ -170,22 +201,43 @@ Role context: "${roleOrContext || "Software Engineer"}"`;
 
   /**
    * Generates a focused, high-impact 3-sentence professional summary
+   * Grounded in candidate's real skills, projects, and target role.
    */
   async generateSummary(profile: MasterCareerProfile, targetRole: string): Promise<string> {
-    // L3: Null-safe access for profile.skills
     const topSkills = [
       ...(profile.skills?.technical || []),
       ...(profile.skills?.frameworks || []),
-    ].slice(0, 4).join(", ") || "Modern Web & Distributed Systems";
+    ].slice(0, 5).join(", ");
 
-    // M1: Dynamic years calculation
+    const topProject = profile.projects?.[0]?.title;
+    const topExperience = profile.experience?.[0];
+
+    const prompt = `You are a Principal Career Advisor. Write a compelling, high-impact 3-sentence professional resume summary for a candidate targeting the role of "${targetRole}".
+CANDIDATE FACTS (Do NOT invent facts outside these):
+- Skills: ${topSkills || "Software Engineering, Problem Solving"}
+- Experience: ${topExperience ? `${topExperience.role} at ${topExperience.company}` : profile.isFresherMode ? "Recent Graduate / Fresher" : "Experienced professional"}
+- Featured Project: ${topProject || "Full-stack development"}
+- Education: ${profile.education?.[0]?.college || "Higher Education"}
+
+RULES:
+- Return ONLY the summary paragraph text (plain text, 3-4 sentences max).
+- Tone: confident, professional, and action-oriented.
+- Do NOT include quotes, markdown headers, or JSON formatting.`;
+
+    const aiSummary = await this.callGemini(prompt, false);
+    if (aiSummary && aiSummary.trim().length > 40) {
+      return aiSummary.trim().replace(/^["']|["']$/g, "");
+    }
+
+    // High quality deterministic fallback
+    const skillsList = topSkills || "Modern Web & Distributed Systems";
     const yearsExp = profile.isFresherMode
       ? "Motivated Engineering graduate"
       : `Results-driven Engineer with ${this.calculateYearsOfExperience(profile)}+ years of hands-on experience`;
 
-    const topProject = profile.projects?.[0]?.title || "high-throughput distributed applications";
+    const projectText = topProject || "high-throughput distributed applications";
 
-    return `${yearsExp} specializing in ${targetRole}, with deep proficiency across ${topSkills}. Proven track record architecting robust solutions including ${topProject}, delivering measurable performance gains, high reliability, and scalable code. Committed to engineering excellence, continuous learning, and driving collaborative product velocity.`;
+    return `${yearsExp} specializing in ${targetRole}, with deep proficiency across ${skillsList}. Proven track record architecting robust solutions including ${projectText}, delivering measurable performance gains, high reliability, and scalable code. Committed to engineering excellence, continuous learning, and driving collaborative product velocity.`;
   }
 
   /**
@@ -203,16 +255,38 @@ Role context: "${roleOrContext || "Software Engineer"}"`;
       year: "numeric",
     });
 
-    // L3: Null-safe access for profile.skills
-    const primarySkills = [
+    const topSkills = [
       ...(profile.skills?.technical || []),
       ...(profile.skills?.frameworks || []),
-    ].slice(0, 4).join(", ") || "software design, frontend architecture, and microservices";
+    ].slice(0, 5).join(", ");
 
-    const highlightExperience = profile.experience?.[0];
-    const expSentence = highlightExperience
-      ? `During my tenure as ${highlightExperience.role} at ${highlightExperience.company}, I led critical engineering initiatives, including: "${highlightExperience.bullets?.[0] || "optimizing core platform systems"}".`
-      : `Throughout my academic and project journey at ${profile.education?.[0]?.college || "university"}, I have spearheaded complex implementations such as "${profile.projects?.[0]?.title || "full-stack distributed projects"}".`;
+    const highlightExp = profile.experience?.[0];
+    const highlightProj = profile.projects?.[0];
+
+    const prompt = `You are an elite Executive Career Coach. Write a tailored, persuasive, professional cover letter.
+DETAILS:
+- Candidate Name: ${profile.fullName || "Candidate"}
+- Target Company: ${companyName}
+- Target Role: ${targetRole}
+- Chosen Tone: ${tone}
+- Candidate Skills: ${topSkills || "Software Architecture, Full-Stack Development"}
+- Experience: ${highlightExp ? `${highlightExp.role} at ${highlightExp.company}` : "Engineering background"}
+- Notable Project: ${highlightProj ? highlightProj.title : "Complex web applications"}
+
+FORMAT:
+Start directly with the date (${today}), recipient address block, salutation ("Dear Hiring Team,"), 3-4 cohesive paragraphs highlighting candidate relevance to ${companyName}, and sign off with candidate details.
+Do NOT invent fake degrees or fake awards. Return clean text.`;
+
+    const aiLetter = await this.callGemini(prompt, false);
+    if (aiLetter && aiLetter.trim().length > 100) {
+      return aiLetter.trim();
+    }
+
+    // Deterministic Fallback
+    const primarySkills = topSkills || "software design, frontend architecture, and microservices";
+    const expSentence = highlightExp
+      ? `During my tenure as ${highlightExp.role} at ${highlightExp.company}, I led critical engineering initiatives, including: "${highlightExp.bullets?.[0] || "optimizing core platform systems"}".`
+      : `Throughout my academic and project journey at ${profile.education?.[0]?.college || "university"}, I have spearheaded complex implementations such as "${highlightProj?.title || "full-stack distributed projects"}".`;
 
     let openingHook = `I am writing to express my strong interest in the ${targetRole} opportunity at ${companyName}.`;
     if (tone === "Enthusiastic Fresher") {
@@ -230,7 +304,7 @@ Dear Hiring Team,
 
 ${openingHook} Having followed ${companyName}'s rapid innovation and technical impact, I am energized by the opportunity to contribute to your engineering excellence and scale.
 
-${expSentence} My technical toolkit spans ${primarySkills}, paired with a relentless focus on clean architecture, sub-second latency, and user-centric problem solving. 
+${expSentence} My technical toolkit spans ${primarySkills}, paired with a relentless focus on clean architecture, performance, and user-centric problem solving. 
 
 What draws me specifically to ${companyName} is your dedication to solving complex engineering challenges at scale. I thrive in collaborative environments where performance, code maintainability, and customer outcomes are prioritized. I am confident that my experience delivering resilient features will enable me to hit the ground running and create immediate value for your team.
 
@@ -238,20 +312,53 @@ Thank you for your time and consideration. I welcome the opportunity to discuss 
 
 Warm regards,
 
-${profile.fullName}
-${profile.email} | ${profile.phone}
-${profile.location}
-${profile.linkedinUrl}`;
+${profile.fullName || "Candidate"}
+${profile.email || ""} ${profile.phone ? `| ${profile.phone}` : ""}
+${profile.location || ""}
+${profile.linkedinUrl || ""}`;
   }
 
   /**
-   * Generates realistic role-specific interview questions
+   * Generates realistic role-specific interview questions using Gemini with Zod validation
    */
   async generateInterviewQuestions(targetRole: string, profile: MasterCareerProfile): Promise<InterviewQuestionItem[]> {
-    // L3: Null-safe access
+    const techSkills = profile.skills?.technical?.slice(0, 4).join(", ") || "System Architecture, APIs";
+    const topProject = profile.projects?.[0]?.title || "Distributed Application";
+
+    const prompt = `You are a Senior Engineering Hiring Manager at a top tech company. Generate 5 realistic, high-signal interview questions for a candidate interviewing for the role of "${targetRole}".
+Candidate Skills: ${techSkills}
+Candidate Project: "${topProject}"
+
+Return a JSON array of exactly 5 questions with:
+[
+  {
+    "id": "q-1",
+    "questionIndex": 1,
+    "category": "Technical",
+    "questionText": "...",
+    "modelAnswer": "..."
+  },
+  ...
+]
+Categories must include: "Technical", "Project", "Technical", "Situational", "HR".
+Ensure modelAnswer provides a rigorous, benchmark answer demonstrating senior engineering reasoning.`;
+
+    const rawJson = await this.callGemini(prompt, true);
+    if (rawJson) {
+      try {
+        const parsed = JSON.parse(rawJson);
+        const validated = InterviewQuestionsSchema.safeParse(parsed);
+        if (validated.success && validated.data.length >= 3) {
+          return validated.data;
+        }
+      } catch (err) {
+        console.warn("Failed to parse Gemini interview questions, using fallback.");
+      }
+    }
+
+    // High quality context-aware fallback
     const techSkill = profile.skills?.technical?.[0] || "System Architecture";
     const framework = profile.skills?.frameworks?.[0] || "React & Node.js";
-    const topProject = profile.projects?.[0]?.title || "Distributed Application";
 
     return [
       {
@@ -274,7 +381,7 @@ ${profile.linkedinUrl}`;
         id: "q-3",
         questionIndex: 3,
         category: "Technical",
-        questionText: `Explain how you implement optimistic UI updates, state synchronization, and race condition prevention when using ${framework}.`,
+        questionText: `Explain how you implement optimistic UI updates, state synchronization, and race condition prevention when building applications with ${framework} and ${techSkill}.`,
         modelAnswer:
           "Use transactional local state mutations with immediate UI feedback while dispatching asynchronous mutations. If an error occurs, perform an idempotent state rollback and trigger an unobtrusive notification. Use abort controllers or unique request sequence IDs to prevent out-of-order race condition overwrites.",
       },
@@ -298,7 +405,7 @@ ${profile.linkedinUrl}`;
   }
 
   /**
-   * Evaluates user's interview answer
+   * Evaluates user's interview answer using Gemini AI and STAR framework
    */
   async evaluateInterviewAnswer(
     question: string,
@@ -324,7 +431,34 @@ ${profile.linkedinUrl}`;
       };
     }
 
-    // Score based on technical depth, structure, and action verbs
+    const prompt = `You are a Principal Technical Interviewer evaluating a candidate's response.
+QUESTION: "${question}"
+CATEGORY: "${category}"
+CANDIDATE'S ANSWER: "${text}"
+
+Critically evaluate this answer using the STAR framework (Situation, Task, Action, Result) and technical depth.
+Return JSON with:
+{
+  "score": <number between 40 and 98>,
+  "feedbackStrengths": ["strength 1", "strength 2"],
+  "feedbackImprovements": ["area to improve 1", "area to improve 2"],
+  "betterAnswer": "<a top-tier, polished model response to this question>"
+}`;
+
+    const rawJson = await this.callGemini(prompt, true);
+    if (rawJson) {
+      try {
+        const parsed = JSON.parse(rawJson);
+        const validated = InterviewEvaluationSchema.safeParse(parsed);
+        if (validated.success) {
+          return validated.data;
+        }
+      } catch (err) {
+        console.warn("Failed to parse Gemini interview evaluation, using fallback.");
+      }
+    }
+
+    // Deterministic scoring fallback
     let score = 70;
     const strengths: string[] = [];
     const improvements: string[] = [];
@@ -350,10 +484,8 @@ ${profile.linkedinUrl}`;
       improvements.push("State measurable impact (e.g. '% latency improvement' or 'concurrency handled').");
     }
 
-    const finalScore = Math.min(score, 96);
-
     return {
-      score: finalScore,
+      score: Math.min(score, 96),
       feedbackStrengths: strengths.length > 0 ? strengths : ["Communicated core concept directly."],
       feedbackImprovements: improvements.length > 0 ? improvements : ["Continue demonstrating concise technical leadership."],
       betterAnswer:
@@ -363,3 +495,4 @@ ${profile.linkedinUrl}`;
 }
 
 export const karyvoAI = new KaryvoAIService();
+

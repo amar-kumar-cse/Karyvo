@@ -40,9 +40,24 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validated = SaveResumeRequestSchema.parse(body);
 
-    // M4: Use crypto.randomUUID() instead of Date.now()
-    const resumeId = validated.id || `res-${crypto.randomUUID()}`;
-    const existing = await repository.getResumeById(resumeId, userId);
+    let resumeId: string;
+    let existingCreatedAt: string | undefined;
+
+    if (validated.id) {
+      // Must be an existing resume belonging to this user (prevents cross-user ID takeover)
+      const existing = await repository.getResumeById(validated.id, userId);
+      if (!existing) {
+        return NextResponse.json(
+          { success: false, error: "Resume not found or unauthorized." },
+          { status: 404 }
+        );
+      }
+      resumeId = existing.id;
+      existingCreatedAt = existing.createdAt;
+    } else {
+      // Generate secure server-side ID for new resume
+      resumeId = `res-${crypto.randomUUID()}`;
+    }
 
     const resumeToSave: Resume = {
       id: resumeId,
@@ -52,7 +67,7 @@ export async function POST(req: NextRequest) {
       templateId: validated.templateId,
       content: validated.content,
       isPrimary: validated.isPrimary,
-      createdAt: existing?.createdAt || new Date().toISOString(),
+      createdAt: existingCreatedAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
@@ -61,7 +76,10 @@ export async function POST(req: NextRequest) {
     // If requested, create a labeled version snapshot
     if (validated.createVersion) {
       const existingVersions = await repository.getVersionsByResumeId(resumeId, userId);
-      const nextVersionNum = existingVersions.length + 1;
+      const maxVersionNum = existingVersions.length > 0
+        ? Math.max(...existingVersions.map((v) => v.versionNumber))
+        : 0;
+      const nextVersionNum = maxVersionNum + 1;
       const label = validated.versionLabel?.trim() || `Version ${nextVersionNum}`;
 
       await repository.createVersion({

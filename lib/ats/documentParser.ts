@@ -7,10 +7,54 @@ export interface ParsedDocumentResult {
   extractedVia: "local-parser" | "ai-vision-ocr" | "plain-text";
 }
 
+const MAX_FILE_SIZE_BYTES = 12 * 1024 * 1024; // 12 MB max limit
+const MAX_PDF_STREAMS = 500; // Guard against deeply nested or malicious PDFs
+const MAX_DECOMPRESS_BYTES = 4 * 1024 * 1024; // Guard against zip bombs (4MB limit per stream)
+
 /**
- * Pure-Node PDF text stream extractor.
- * Handles standard FlateDecode compressed streams and uncompressed PDF content
- * without any native binary or Webpack bundling issues.
+ * Validates file signature (magic bytes) to avoid trusting client MIME or extension blindly.
+ */
+function detectFileTypeFromMagicBytes(buffer: Buffer): "pdf" | "image" | "unknown" {
+  if (buffer.length >= 4 && buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46) {
+    return "pdf";
+  }
+  // PNG: \x89PNG\r\n\x1a\n
+  if (buffer.length >= 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+    return "image";
+  }
+  // JPEG: \xFF\xD8\xFF
+  if (buffer.length >= 3 && buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+    return "image";
+  }
+  // WEBP: RIFF....WEBP
+  if (
+    buffer.length >= 12 &&
+    buffer.toString("ascii", 0, 4) === "RIFF" &&
+    buffer.toString("ascii", 8, 12) === "WEBP"
+  ) {
+    return "image";
+  }
+  return "unknown";
+}
+
+/**
+ * Standard PDF text extractor using pdf-parse library.
+ * Handles CID fonts, hex encodings, Word/Canva exports cleanly.
+ */
+async function extractTextWithPdfParse(buffer: Buffer): Promise<string> {
+  try {
+    const { PDFParse } = await import("pdf-parse");
+    const parser = new PDFParse({ data: buffer });
+    const result = await parser.getText();
+    return result?.text || "";
+  } catch (err) {
+    console.warn("[extractTextWithPdfParse] parser fallback triggered:", err);
+    return "";
+  }
+}
+
+/**
+ * Fallback Pure-Node PDF text stream extractor with strict maxOutputLength zip bomb guards.
  */
 function extractTextFromPdfStream(buffer: Buffer): string {
   try {
@@ -18,16 +62,18 @@ function extractTextFromPdfStream(buffer: Buffer): string {
     const streamRegex = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
     let fullText = "";
     let match: RegExpExecArray | null;
+    let streamCount = 0;
 
-    while ((match = streamRegex.exec(content)) !== null) {
+    while ((match = streamRegex.exec(content)) !== null && streamCount < MAX_PDF_STREAMS) {
+      streamCount++;
       const rawStream = Buffer.from(match[1], "binary");
       let decompressed = "";
 
       try {
-        decompressed = zlib.inflateSync(rawStream).toString("utf-8");
+        decompressed = zlib.inflateSync(rawStream, { maxOutputLength: MAX_DECOMPRESS_BYTES }).toString("utf-8");
       } catch {
         try {
-          decompressed = zlib.inflateRawSync(rawStream).toString("utf-8");
+          decompressed = zlib.inflateRawSync(rawStream, { maxOutputLength: MAX_DECOMPRESS_BYTES }).toString("utf-8");
         } catch {
           decompressed = rawStream.toString("utf-8");
         }
@@ -72,7 +118,7 @@ function extractTextFromPdfStream(buffer: Buffer): string {
 
 /**
  * Robust document parser that extracts text from:
- * - PDF documents (via local stream parser with AI Vision fallback)
+ * - PDF documents (via pdf-parse with local stream & AI Vision fallbacks)
  * - Images (PNG, JPG, JPEG, WEBP via AI Vision OCR)
  * - Plain text / Markdown files
  */
@@ -81,8 +127,15 @@ export async function parseResumeDocument(
   mimeType: string,
   filename: string
 ): Promise<ParsedDocumentResult> {
+  if (fileBuffer.length > MAX_FILE_SIZE_BYTES) {
+    throw new Error(
+      `File exceeds maximum allowed size of 12MB (received ${(fileBuffer.length / (1024 * 1024)).toFixed(1)}MB).`
+    );
+  }
+
   const cleanMime = (mimeType || "").toLowerCase().trim();
   const lowerName = (filename || "").toLowerCase().trim();
+  const magicType = detectFileTypeFromMagicBytes(fileBuffer);
 
   // 1. PLAIN TEXT / MARKDOWN
   if (
@@ -100,11 +153,22 @@ export async function parseResumeDocument(
     };
   }
 
-  // 2. PDF DOCUMENT
-  if (cleanMime.includes("application/pdf") || lowerName.endsWith(".pdf")) {
-    const localText = extractTextFromPdfStream(fileBuffer);
+  // 2. PDF DOCUMENT (Verify magic bytes or declared mime/extension)
+  if (magicType === "pdf" || cleanMime.includes("application/pdf") || lowerName.endsWith(".pdf")) {
+    // 2a. Try standard pdf-parse first for complete font & CID decoding
+    const parsedText = await extractTextWithPdfParse(fileBuffer);
+    if (parsedText && parsedText.replace(/\s+/g, "").length >= 50) {
+      const cleaned = cleanExtractedText(parsedText);
+      return {
+        text: cleaned,
+        sourceType: "pdf",
+        wordCount: countWords(cleaned),
+        extractedVia: "local-parser",
+      };
+    }
 
-    // If local stream parser extracted good content (> 50 chars), use it directly
+    // 2b. Try fallback stream parser
+    const localText = extractTextFromPdfStream(fileBuffer);
     if (localText && localText.replace(/\s+/g, "").length >= 50) {
       const cleaned = cleanExtractedText(localText);
       return {
@@ -115,7 +179,7 @@ export async function parseResumeDocument(
       };
     }
 
-    // Otherwise, if PDF was image-scanned or complex, use Gemini Multimodal OCR
+    // 2c. If PDF is image-scanned or complex, use Gemini Vision OCR
     if (process.env.GEMINI_API_KEY) {
       try {
         const aiText = await extractTextWithGemini(fileBuffer, "application/pdf");
@@ -133,7 +197,7 @@ export async function parseResumeDocument(
       }
     }
 
-    // If local parser got some text, use it as fallback
+    // If local stream parser got some minimal text, return it
     if (localText && localText.trim()) {
       const cleaned = cleanExtractedText(localText);
       return {
@@ -269,7 +333,7 @@ Guidelines:
       }
 
       const errText = await res.text();
-      throw new Error(`AI OCR engine returned status ${res.status}`);
+      throw new Error(`AI OCR engine returned status ${res.status}: ${errText.slice(0, 150)}`);
     } catch (err: any) {
       clearTimeout(timeoutId);
       lastError = err;
